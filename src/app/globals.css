@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  Backpackers Storey — design tokens (§2 brand)
+  Concept: flight + altitude. Coordinate / elevation tags are the signature device.
+*/
+@theme {
+  /* palette */
+  --color-pine: #101d16; /* deepest base */
+  --color-forest: #1a3024; /* surface */
+  --color-moss: #274536; /* raised surface / borders */
+  --color-amber: #e9a23b; /* primary accent (dusk-amber) */
+  --color-ember: #d2622e; /* secondary accent — use sparingly */
+  --color-paper: #f1eee6; /* warm paper, primary text on dark */
+  --color-sage: #a9b5a0; /* muted body text */
+
+  /* radii */
+  --radius-card: 1.25rem;
 }
 
+/* Fonts are injected at runtime by next/font on <html>; map them inline so the
+   utilities emit the runtime CSS variable directly. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, "Space Mono", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-pine);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-amber);
+  color: var(--color-pine);
+}
+
+/* Mono utility for data: coordinates, IDs, bill numbers, elevations. */
+.font-data {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.02em;
+}
+
+/* Hairline border used by the coordinate / elevation tags. */
+.hairline {
+  border-color: color-mix(in srgb, var(--color-sage) 28%, transparent);
 }
