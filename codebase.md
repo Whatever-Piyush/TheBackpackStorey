@@ -59,7 +59,7 @@ flowchart LR
 | **1 — Website** | Marketing site (landing, rooms, café, Bir, visit) | ✅ Done & build-verified |
 | **Supabase foundation** | Migrations: schema, RLS, seed; app-side auth scaffold | ✅ Done & verified |
 | **Supabase cloud** | Project provisioned, linked, migrations pushed, keys wired | ✅ Done & verified (2026-06-30) |
-| **2 — Café POS** | Menu mgmt, order taking, live KOT, billing, daily totals | ⬜ Not started (placeholder live) |
+| **2 — Café POS** | Menu mgmt, order taking, live KOT, billing, daily totals | 🟡 In progress — **Menu management done**; order/KOT/billing/today next |
 | **3 — Lite PMS** | Occupancy board, bookings, check-in/out, housekeeping | ⬜ Not started (placeholder live) |
 | **Pre-launch** | Real domain, Storage for photos, SEO/OG, Lighthouse | ⬜ Pending |
 | **4 — In-house bookings + Cashfree** | Own booking engine + room payments | ❌ Dropped — zotel is free; bookings stay there |
@@ -273,8 +273,8 @@ backpackers-storey/
 - [ ] **Commit** the new `supabase/config.toml` + `supabase/.gitignore` to the repo.
 
 ### B. Phase 2 — Café POS
-The placeholder at `/pos` lists the target screens:
-- [ ] **Menu management** — categories, items, price (paise), availability toggle. *(owner/manager/reception)*
+`/pos` is now a real dashboard of cards (live vs. "soon"). Target screens:
+- [x] **Menu management** — ✅ built at `/pos/menu`: edit prices (₹→paise), toggle availability, set kitchen station, add/remove items & categories. Server Actions in `src/lib/pos/actions.ts`, data in `src/lib/pos/menu.ts`, UI in `src/components/pos/menu-manager.tsx`. *(owner/manager/reception)*
 - [ ] **New order** — dine-in / takeaway / room; add items (snapshot price into `order_items`), compute `subtotal/discount/total`.
 - [ ] **Kitchen display (KOT)** — realtime list of `order_items`, tap to advance `pending → preparing → ready`; order auto-flips to `served` (trigger). *(kitchen)*
 - [ ] **Billing** — apply discount, settle via cash/UPI, write a `payments` row, move order to `paid`; printable receipt.
