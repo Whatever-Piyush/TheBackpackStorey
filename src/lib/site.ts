@@ -188,7 +188,16 @@ export const CAFE = {
   blurb:
     "Multi-cuisine plates, real coffee and mocktails, served on an open rooftop strung with lights and pointed at the valley. Outside food is welcome; so are the dogs.",
   highlights: ["Multi-cuisine", "Mocktails", "Burgers & fries", "Coffee", "Board games", "Valley-view seating"],
-  photos: [PHOTOS.rooftopDusk, PHOTOS.rooftopDay, PHOTOS.food, PHOTOS.cafeInterior],
+  photos: [
+    PHOTOS.heroCafe,
+    PHOTOS.rooftopDusk,
+    PHOTOS.rooftopDay,
+    PHOTOS.cafeInterior,
+    PHOTOS.food,
+    PHOTOS.mural,
+    PHOTOS.lounge,
+    PHOTOS.sign,
+  ],
 } as const;
 
 /* ------------------------------------------------------------- experiences */
@@ -208,5 +217,81 @@ export const EXPERIENCES: { title: string; icon: string; body: string }[] = [
     title: "Bonfire & gaming nights",
     icon: "Flame",
     body: "Evenings turn social: a bonfire with music, a gaming zone indoors and a meditation corner for when the day's been big enough.",
+  },
+];
+
+/* --------------------------------------------------------------- location */
+
+export const MAPS = {
+  embed: `https://www.google.com/maps?q=${SITE.coords.lat},${SITE.coords.lng}&z=14&output=embed`,
+  directions: `https://www.google.com/maps/dir/?api=1&destination=${SITE.coords.lat},${SITE.coords.lng}`,
+  link: `https://www.google.com/maps/search/?api=1&query=${SITE.coords.lat},${SITE.coords.lng}`,
+} as const;
+
+export const GETTING_HERE =
+  "Nearest airport: Gaggal / Kangra (~1 hr). Volvo buses run Delhi → Baijnath, then a 20-min taxi to Bir. Tell us your arrival and we'll help with the last mile.";
+
+/* ------------------------------------------------------ nearby attractions */
+
+export type Attraction = {
+  slug: string;
+  name: string;
+  distance: string;
+  blurb: string;
+  icon: string; // lucide name (see components/icon usage / direct import)
+  photo: string; // /photos/nearby/<slug>.jpg (optional — falls back to a gradient)
+  maps: string;
+};
+
+export const ATTRACTIONS: Attraction[] = [
+  {
+    slug: "gunehar-waterfall",
+    name: "Gunehar Waterfall",
+    distance: "1.5 km",
+    blurb:
+      "A scenic waterfall hidden in the forest, reached by a short trek — a refreshing nature escape.",
+    icon: "Waves",
+    photo: "/photos/nearby/gunehar-waterfall.jpg",
+    maps: "https://www.google.com/maps/search/?api=1&query=Gunehar+Waterfall+Bir",
+  },
+  {
+    slug: "bir-landing",
+    name: "Bir Landing Site",
+    distance: "2 km",
+    blurb:
+      "The famous paragliding landing field, ringed by mountains — open skies and breathtaking sunset views.",
+    icon: "Mountain",
+    photo: "/photos/nearby/bir-landing.jpg",
+    maps: "https://www.google.com/maps/search/?api=1&query=Bir+Landing+Site",
+  },
+  {
+    slug: "billing-takeoff",
+    name: "Bir Billing Paragliding",
+    distance: "2.1 km",
+    blurb:
+      "The world-famous takeoff at Billing — tandem flights and schools soaring over scenic valleys.",
+    icon: "Wind",
+    photo: "/photos/nearby/billing-takeoff.jpg",
+    maps: "https://www.google.com/maps/search/?api=1&query=Billing+Paragliding+Takeoff",
+  },
+  {
+    slug: "bungee",
+    name: "Bungee Jumping",
+    distance: "2 km",
+    blurb:
+      "A 50-metre leap with full safety gear and a video to take home — pure adrenaline near the landing site.",
+    icon: "ArrowDownToLine",
+    photo: "/photos/nearby/bungee.jpg",
+    maps: "https://www.google.com/maps/search/?api=1&query=Bungee+Jumping+Bir+Billing",
+  },
+  {
+    slug: "skycycling",
+    name: "Sky Cycling",
+    distance: "2 km",
+    blurb:
+      "Pedal a cycle 500 metres along a cable strung high across the valley — thrilling and surreal.",
+    icon: "Bike",
+    photo: "/photos/nearby/skycycling.jpg",
+    maps: "https://www.google.com/maps/search/?api=1&query=Sky+Cycling+Bir+Billing",
   },
 ];

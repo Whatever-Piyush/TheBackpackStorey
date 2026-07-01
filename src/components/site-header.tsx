@@ -9,10 +9,10 @@ import { BookingButton } from "@/components/booking-button";
 function Wordmark() {
   return (
     <Link href="/" className="group inline-flex flex-col leading-none">
-      <span className="font-display text-lg font-extrabold tracking-tight text-paper">
+      <span className="font-display text-xl font-extrabold tracking-tight text-paper sm:text-2xl">
         Backpackers <span className="text-amber">Storey</span>
       </span>
-      <span className="font-data text-[0.6rem] uppercase tracking-[0.2em] text-sage/70 transition-colors group-hover:text-sage">
+      <span className="font-data mt-1 text-[0.7rem] uppercase tracking-[0.22em] text-sage transition-colors group-hover:text-amber">
         Bir · {SITE.coords.lat.toFixed(2)}°N
       </span>
     </Link>
@@ -23,16 +23,16 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b hairline bg-pine/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
+    <header className="sticky top-0 z-50 border-b hairline bg-pine/85 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
         <Wordmark />
 
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav className="hidden items-center gap-8 md:flex">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm text-sage transition-colors hover:text-paper"
+              className="text-base font-medium text-sage underline-offset-8 transition-colors hover:text-paper hover:underline hover:decoration-amber hover:decoration-2"
             >
               {item.label}
             </Link>
@@ -59,7 +59,7 @@ export function SiteHeader() {
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="block rounded-lg px-2 py-2.5 text-base text-paper hover:bg-moss"
+                  className="block rounded-lg px-2 py-3 text-lg font-medium text-paper hover:bg-moss"
                 >
                   {item.label}
                 </Link>

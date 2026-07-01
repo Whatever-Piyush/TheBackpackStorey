@@ -1,5 +1,7 @@
 import {
+  ArrowDownToLine,
   ArrowUpRight,
+  Bike,
   Car,
   Coffee,
   Dumbbell,
@@ -9,6 +11,7 @@ import {
   MapPin,
   MessageCircle,
   Mountain,
+  Navigation,
   PawPrint,
   Phone,
   ShowerHead,
@@ -17,13 +20,16 @@ import {
   Thermometer,
   Trees,
   Tv,
+  Waves,
   Wifi,
   Wind,
 } from "lucide-react";
 
 /** Icons referenced by name from the data module (src/lib/site.ts). */
 const REGISTRY = {
+  ArrowDownToLine,
   ArrowUpRight,
+  Bike,
   Car,
   Coffee,
   Dumbbell,
@@ -33,6 +39,7 @@ const REGISTRY = {
   MapPin,
   MessageCircle,
   Mountain,
+  Navigation,
   PawPrint,
   Phone,
   ShowerHead,
@@ -41,6 +48,7 @@ const REGISTRY = {
   Thermometer,
   Trees,
   Tv,
+  Waves,
   Wifi,
   Wind,
 };

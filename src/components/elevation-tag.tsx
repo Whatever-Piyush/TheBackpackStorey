@@ -7,7 +7,7 @@ import { SITE } from "@/lib/site";
 type Size = "sm" | "lg";
 
 const SIZES: Record<Size, string> = {
-  sm: "gap-2 px-3 py-1 text-[0.7rem]",
+  sm: "gap-2 px-3.5 py-1.5 text-sm",
   lg: "gap-2.5 px-4 py-2 text-sm sm:text-base",
 };
 
@@ -22,7 +22,7 @@ export function ElevationTag({
   className?: string;
   size?: Size;
 }) {
-  const coordClass = size === "lg" ? "text-paper/70" : "text-sage/50";
+  const coordClass = size === "lg" ? "text-paper/70" : "text-sage/75";
   return (
     <span
       className={`font-data inline-flex items-center rounded-full border hairline font-medium uppercase tracking-[0.18em] text-sage ${SIZES[size]} ${className}`}

@@ -80,7 +80,7 @@ export default async function RoomDetailPage({ params }: Params) {
           </ul>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <BookingButton>Book this {room.isDorm ? "bed" : "room"}</BookingButton>
+            <BookingButton type={room.slug}>Book this {room.isDorm ? "bed" : "room"}</BookingButton>
             <a
               href={`tel:${SITE.phones[0].replace(/[^\d]/g, "")}`}
               className="font-data text-sm text-sage hover:text-paper"
