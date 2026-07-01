@@ -2,17 +2,22 @@
 
 /*
   Backpackers Storey — design tokens (§2 brand)
-  Concept: flight + altitude. Coordinate / elevation tags are the signature device.
+  Concept: flight + altitude, at dusk. Deep indigo/violet sky, dusk-gold accent.
+  Coordinate / elevation tags are the signature device. Token *names* are kept
+  (pine/forest/moss/sage) so the whole app re-themes from these values alone.
 */
 @theme {
-  /* palette */
-  --color-pine: #101d16; /* deepest base */
-  --color-forest: #1a3024; /* surface */
-  --color-moss: #274536; /* raised surface / borders */
-  --color-amber: #e9a23b; /* primary accent (dusk-amber) */
-  --color-ember: #d2622e; /* secondary accent — use sparingly */
-  --color-paper: #f1eee6; /* warm paper, primary text on dark */
-  --color-sage: #a9b5a0; /* muted body text */
+  /* palette — dusk indigo/violet */
+  --color-pine: #100c26; /* deepest base — indigo night */
+  --color-forest: #1b1642; /* surface — deep indigo */
+  --color-moss: #2e2668; /* raised surface / borders — indigo-violet */
+  --color-amber: #eaa53f; /* primary accent (dusk-gold) */
+  --color-ember: #e0653a; /* secondary accent — use sparingly */
+  --color-paper: #f0ecf8; /* soft paper, primary text on dark */
+  --color-sage: #a9a3cc; /* muted body text — periwinkle */
+
+  /* one violet for glows/gradients */
+  --color-violet: #7b5cff;
 
   /* radii */
   --radius-card: 1.25rem;
@@ -35,16 +40,71 @@ html {
 }
 
 body {
-  background-color: var(--color-pine);
   color: var(--color-paper);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+
+  /* Dusk-sky depth: a warm dawn glow top-left, a bright indigo bloom top-right,
+     and a violet haze rising from the horizon. Fixed so it sits behind scroll. */
+  background-color: var(--color-pine);
+  background-image:
+    radial-gradient(
+      1100px 520px at 12% -8%,
+      color-mix(in srgb, var(--color-amber) 11%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      1000px 640px at 108% 2%,
+      color-mix(in srgb, var(--color-violet) 26%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      1200px 900px at 50% 118%,
+      color-mix(in srgb, #59308f 32%, transparent),
+      transparent 60%
+    );
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  min-height: 100dvh;
 }
 
 ::selection {
   background: var(--color-amber);
   color: var(--color-pine);
+}
+
+/* Smoother interactions app-wide. */
+a,
+button {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Soft dusk-gold glow under the primary pill CTAs (amber buttons). */
+.rounded-full.bg-amber {
+  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--color-amber) 80%, transparent);
+}
+.rounded-full.bg-amber:hover {
+  box-shadow: 0 12px 34px -10px color-mix(in srgb, var(--color-amber) 90%, transparent);
+}
+
+/* Themed scrollbar. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-pine);
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-moss) 85%, transparent);
+  border: 2px solid var(--color-pine);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-moss);
 }
 
 /* Mono utility for data: coordinates, IDs, bill numbers, elevations. */
@@ -54,7 +114,7 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Hairline border used by the coordinate / elevation tags. */
+/* Hairline border used by the coordinate / elevation tags and cards. */
 .hairline {
-  border-color: color-mix(in srgb, var(--color-sage) 28%, transparent);
+  border-color: color-mix(in srgb, var(--color-sage) 26%, transparent);
 }

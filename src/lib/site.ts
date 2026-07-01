@@ -52,6 +52,7 @@ export type Photo = { src: string; alt: string };
 
 // Categorised from the property's own photos (downloaded into /public/photos).
 export const PHOTOS = {
+  heroCafe: { src: "/photos/hero-cafe.jpg", alt: "The rooftop café at night, glowing with warm Edison bulbs and blue fairy lights over brick walls, murals and bistro tables" },
   exterior: { src: "/photos/photo-01.jpg", alt: "The colourful exterior of Backpackers Storey with prayer flags and a turf courtyard" },
   cafeInterior: { src: "/photos/photo-02.jpg", alt: "Cosy café corner with fairy lights, board games and a forest-facing window" },
   mural: { src: "/photos/photo-03.jpg", alt: "An astronaut mural beside a 'Travel is my therapy' signpost" },

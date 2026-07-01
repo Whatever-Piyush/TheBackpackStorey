@@ -13,17 +13,22 @@ export default function HomePage() {
       {/* ---------------------------------------------------------- hero */}
       <section className="relative isolate flex min-h-[90vh] flex-col justify-end overflow-hidden">
         <Image
-          src={PHOTOS.rooftopDusk.src}
-          alt={PHOTOS.rooftopDusk.alt}
+          src={PHOTOS.heroCafe.src}
+          alt={PHOTOS.heroCafe.alt}
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-pine via-pine/55 to-pine/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-pine via-pine/70 to-pine/30" />
 
         <div className="relative mx-auto w-full max-w-6xl px-5 pb-14 pt-36 sm:px-8">
-          <ElevationTag label="Bir · Billing" elevation={SITE.elevation.launch} />
+          <ElevationTag
+            label="Bir · Billing"
+            elevation={SITE.elevation.launch}
+            size="lg"
+            className="border-paper/25 bg-pine/55 text-paper shadow-lg backdrop-blur-md"
+          />
           <h1 className="mt-6 max-w-3xl font-display text-5xl font-extrabold leading-[0.95] tracking-tight text-paper sm:text-7xl">
             Sleep where the sky launches.
           </h1>
