@@ -32,7 +32,7 @@ const CARDS: Card[] = [
     blurb: "Dine-in, takeaway or room — build the bill.",
     icon: ShoppingCart,
     roles: ["owner", "manager", "reception"],
-    live: false,
+    live: true,
   },
   {
     href: "/pos/kitchen",
