@@ -3,7 +3,7 @@
 > Single source of truth for **what this project is, what's built, and what's left to build** to make it fully working.
 > A small backpacker hostel + rooftop café in **Bir, Himachal Pradesh** — a marketing website plus a staff portal (café POS + lite PMS) on Supabase.
 
-**Last updated:** 2026-06-30
+**Last updated:** 2026-07-30 — now extending into a **Hotel OS**; the website becomes its public frontend.
 
 ---
 
@@ -59,10 +59,12 @@ flowchart LR
 | **1 — Website** | Marketing site (landing, rooms, café, Bir, visit) | ✅ Done & build-verified |
 | **Supabase foundation** | Migrations: schema, RLS, seed; app-side auth scaffold | ✅ Done & verified |
 | **Supabase cloud** | Project provisioned, linked, migrations pushed, keys wired | ✅ Done & verified (2026-06-30) |
-| **2 — Café POS** | Menu mgmt, order taking, live KOT, billing, daily totals | 🟡 In progress — **Menu management done**; order/KOT/billing/today next |
+| **2 — Café POS** | Menu mgmt, order taking, live KOT, billing, daily totals | 🟡 **Menu management + New order done**; KOT/billing/today next |
 | **3 — Lite PMS** | Occupancy board, bookings, check-in/out, housekeeping | ⬜ Not started (placeholder live) |
 | **Pre-launch** | Real domain, Storage for photos, SEO/OG, Lighthouse | ⬜ Pending |
-| **4 — In-house bookings + Cashfree** | Own booking engine + room payments | ❌ Dropped — zotel is free; bookings stay there |
+| **4 — In-house bookings** | Own booking engine (`/book`), availability, reservations | ✅ **Built** (commit `ef16177`) — reverses the earlier "dropped" decision; zotel retired |
+| **Cashfree** | Online payment for bookings | ❌ Not built — bookings are *reserve now, pay at property* |
+| **Hotel OS L1 — Data foundation** | Audit timestamps, soft deletes, rates out of code into `room_types` | ✅ Done & verified (2026-07-30) |
 
 ---
 
@@ -175,7 +177,15 @@ erDiagram
     payments { uuid id PK uuid order_id FK uuid booking_id FK int amount_paise text method text status }
 ```
 
-**Tables (11):** `profiles`, `menu_categories`, `menu_items`, `rooms`, `beds`, `guests`, `bookings`, `housekeeping`, `orders`, `order_items`, `payments`.
+**Tables (12):** `profiles`, `menu_categories`, `menu_items`, **`room_types`**, `rooms`, `beds`, `guests`, `bookings`, `housekeeping`, `orders`, `order_items`, `payments`.
+
+**Conventions added by `0004_foundation.sql` (Hotel OS Layer 1):**
+- ⏱ **`updated_at` on every table**, maintained by one shared `set_updated_at()` trigger.
+- 🗑 **Soft deletes** (`deleted_at` + a partial `… where deleted_at is null` index) on the six catalogue tables staff curate: `menu_categories`, `menu_items`, `room_types`, `rooms`, `beds`, `guests`. Transactional tables (`bookings`, `orders`, `order_items`, `payments`) are **not** soft-deleted — they already reach terminal states, and a financial ledger should never vanish from a query.
+  - ⚠️ The columns exist but the POS delete paths still **hard delete** (`lib/pos/actions.ts`). Switching them over also means filtering every read — a follow-up, not done yet.
+- 💵 **`room_types` owns the nightly rate** (`base_rate_paise`) and `max_occupancy`. This replaced the hardcoded `RATES` constant in the deleted `lib/booking/rates.ts`; prices are now editable data, not a deploy. `code` deliberately has **no CHECK constraint** so a fifth room type is an INSERT, not a migration.
+- 🔗 `rooms.room_type_id` FK, backfilled from `rooms.type`. **`rooms.type` is kept** for backward compatibility and is now deprecated; retire it once every caller uses the FK.
+- 👥 `bookings.guests` — the public form always collected a guest count and then discarded it.
 
 **Key invariants baked into the schema:**
 - 💰 **Money is integer paise** with `>= 0` checks on every amount.
@@ -208,13 +218,19 @@ backpackers-storey/
 │   └── migrations/
 │       ├── 0001_schema.sql          # tables, checks, triggers, exclusion constraints, realtime
 │       ├── 0002_rls.sql             # row-level security policies per role
-│       └── 0003_seed.sql            # rooms, beds, housekeeping, café menu (placeholder prices)
+│       ├── 0003_seed.sql            # rooms, beds, housekeeping, café menu (placeholder prices)
+│       └── 0004_foundation.sql      # updated_at triggers, soft deletes, room_types + rates
 │
 └── src/
     ├── proxy.ts                     # Next 16 middleware → session refresh + optimistic gate
     ├── lib/
-    │   ├── site.ts                  # ⭐ single source of truth for ALL public content
+    │   ├── site.ts                  # ⭐ marketing content (copy, photos, amenities) — NOT rates
     │   ├── auth.ts                  # getSessionProfile / requireUser / requireRole / roleHome
+    │   ├── money.ts                 # integer-paise ⇄ rupee display helpers
+    │   ├── dates.ts                 # nights() / today() — stay dates are plain YYYY-MM-DD
+    │   ├── rooms/room-types.ts      # 💵 DB-backed rates + occupancy (replaced booking/rates.ts)
+    │   ├── booking/                 # actions.ts (availability + reserve), types.ts
+    │   ├── pos/                     # actions.ts, menu.ts, types.ts
     │   └── supabase/
     │       ├── config.ts            # env readers + isSupabaseConfigured guard
     │       ├── client.ts            # browser client
@@ -275,7 +291,7 @@ backpackers-storey/
 ### B. Phase 2 — Café POS
 `/pos` is now a real dashboard of cards (live vs. "soon"). Target screens:
 - [x] **Menu management** — ✅ built at `/pos/menu`: edit prices (₹→paise), toggle availability, set kitchen station, add/remove items & categories. Server Actions in `src/lib/pos/actions.ts`, data in `src/lib/pos/menu.ts`, UI in `src/components/pos/menu-manager.tsx`. *(owner/manager/reception)*
-- [ ] **New order** — dine-in / takeaway / room; add items (snapshot price into `order_items`), compute `subtotal/discount/total`.
+- [x] **New order** — ✅ built at `/pos/order`: dine-in / takeaway / room, snapshots price into `order_items`, computes `subtotal/discount/total`. UI in `src/components/pos/order-builder.tsx`.
 - [ ] **Kitchen display (KOT)** — realtime list of `order_items`, tap to advance `pending → preparing → ready`; order auto-flips to `served` (trigger). *(kitchen)*
 - [ ] **Billing** — apply discount, settle via cash/UPI, write a `payments` row, move order to `paid`; printable receipt.
 - [ ] **Today** — totals by method, open vs paid.
@@ -321,7 +337,11 @@ flowchart LR
 ---
 
 ## 10. Decisions on record
-- **Phase 4 dropped (2026-06-29):** zotel is free, so room bookings stay on the zotel link permanently; no in-house booking engine. Cashfree may return *only* for café/PMS settlement.
+- **Rates live in the DB (2026-07-30):** `room_types.base_rate_paise`, not a TypeScript constant. If the rate lookup fails the booking flow returns an error rather than falling back to a stale price — a wrong quote is worse than an honest failure.
+- **Multi-property deferred (2026-07-30):** the Hotel OS stays single-property for now; no `properties` table, no `property_id`. Accepted cost: retrofitting it later means migrating every table plus every query and RLS policy.
+- **Content stays in code (2026-07-30):** only *operational* data (rates, rooms, menu) moves to the database. Marketing copy, amenities, attractions and gallery remain in `src/lib/site.ts`; a CMS layer is explicitly later.
+- **Phase 4 un-dropped (2026-07-02, commit `ef16177`):** the in-house booking engine **was** built and zotel retired, reversing the 2026-06-29 decision below. Bookings are *reserve now, pay at property* — no gateway.
+- **Phase 4 dropped (2026-06-29):** ~~zotel is free, so room bookings stay on the zotel link permanently~~ — superseded above.
 - **Right-sizing:** smallest correct system, real scraped content (no invented prices/data), honest scoping.
 - **Next.js 16, not 14:** `middleware` → `proxy`, async `cookies()`/`params`, Tailwind v4 — read `node_modules/next/dist/docs/` before writing Next code.
 
