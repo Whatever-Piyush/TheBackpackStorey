@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAnonKey, supabaseUrl } from "./config";
 
-/** Portal route prefixes that require a signed-in staff member. */
-const PROTECTED = ["/pos", "/stays"];
+/** Route prefixes that require a signed-in staff member. */
+const PROTECTED = ["/pos", "/stays", "/reception"];
 
 /**
  * Refreshes the Supabase session cookie on every request and does an

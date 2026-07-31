@@ -7,11 +7,17 @@ import { getRoom, ROOMS, SITE } from "@/lib/site";
 import { BookingButton } from "@/components/booking-button";
 import { ElevationTag } from "@/components/elevation-tag";
 import { RoomCard } from "@/components/room-card";
+import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
+import { addDays, today } from "@/lib/dates";
+import { getAvailability, roomTypeIdForCode } from "@/lib/booking/availability";
 
-// Pre-render every room type at build time.
+// Pre-render every room type, then refresh the calendar periodically. The page
+// itself never depends on availability loading — see below.
 export function generateStaticParams() {
   return ROOMS.map((room) => ({ type: room.slug }));
 }
+
+export const revalidate = 300;
 
 // Next 16: route params arrive as a Promise.
 type Params = { params: Promise<{ type: string }> };
@@ -33,6 +39,14 @@ export default async function RoomDetailPage({ params }: Params) {
 
   const [hero, ...rest] = room.photos;
   const others = ROOMS.filter((r) => r.slug !== room.slug);
+
+  // The room ALWAYS renders. Availability is additive: if the database is
+  // unreachable, or Supabase isn't configured, the page still sells the room and
+  // simply doesn't show a calendar.
+  const roomTypeId = await roomTypeIdForCode(room.slug);
+  const availability = roomTypeId
+    ? await getAvailability(roomTypeId, today(), addDays(today(), 365))
+    : null;
 
   return (
     <article className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
@@ -60,9 +74,7 @@ export default async function RoomDetailPage({ params }: Params) {
           <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight tracking-tight text-paper sm:text-5xl">
             {room.name}
           </h1>
-          <p className="font-data mt-2 text-sm text-sage">
-            {room.kind} · sleeps {room.sleeps}
-          </p>
+          <p className="font-data mt-2 text-sm text-sage">{room.kind}</p>
 
           <div className="mt-6 space-y-4 text-base leading-relaxed text-sage">
             {room.long.map((p, i) => (
@@ -90,6 +102,22 @@ export default async function RoomDetailPage({ params }: Params) {
           </div>
         </div>
       </div>
+
+      <section className="mt-14">
+        <h2 className="font-display text-2xl font-extrabold tracking-tight text-paper">
+          When you can stay
+        </h2>
+        <p className="mt-1.5 text-sm text-sage">
+          Twelve months ahead. Green nights are open — pick your dates on the
+          booking page.
+        </p>
+        <div className="mt-4 max-w-md">
+          <AvailabilityCalendar
+            nights={availability?.nights ?? []}
+            unitNoun={room.isDorm ? "bed" : "room"}
+          />
+        </div>
+      </section>
 
       {rest.length > 0 ? (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
