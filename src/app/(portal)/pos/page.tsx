@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, BookOpen, ChefHat, ShoppingCart } from "lucide-react";
+import { BarChart3, BookOpen, ChefHat, ReceiptIndianRupee, ShoppingCart } from "lucide-react";
 import { requireRole, type Role } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -40,15 +40,23 @@ const CARDS: Card[] = [
     blurb: "Live tickets — tap to advance each item.",
     icon: ChefHat,
     roles: ["owner", "manager", "reception", "kitchen"],
-    live: false,
+    live: true,
+  },
+  {
+    href: "/pos/bills",
+    label: "Open bills",
+    blurb: "Settle by cash, UPI or card — or charge to a room.",
+    icon: ReceiptIndianRupee,
+    roles: ["owner", "manager", "reception"],
+    live: true,
   },
   {
     href: "/pos/today",
     label: "Today",
-    blurb: "Totals by method, open vs paid.",
+    blurb: "Totals by method, open vs settled, close the day.",
     icon: BarChart3,
-    roles: ["owner", "manager"],
-    live: false,
+    roles: ["owner"],
+    live: true,
   },
 ];
 
