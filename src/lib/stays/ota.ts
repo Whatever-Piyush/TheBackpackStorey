@@ -72,6 +72,9 @@ export async function createOtaBooking(
     p_units: units,
     p_external_ref: reference || null,
     p_amount_paise: amountPaise,
+    // A person at the desk. The function checks user_role() for this source, so
+    // it cannot be used to bypass the staff check.
+    p_source: "reception",
     p_actor_id: session.userId,
     p_actor_label: session.fullName || session.email || "Reception",
   });

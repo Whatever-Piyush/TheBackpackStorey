@@ -13,7 +13,12 @@ import { MockProvider } from "./mock.ts";
  */
 export const PROVIDERS: Record<string, ChannelProvider> = {
   manual: new ManualProvider(),
-  mock: new MockProvider(),
+  // The mock exists to exercise the pipeline before a contract is signed, so it
+  // is not registered in production: an unroutable provider cannot be selected by
+  // configuration, cannot be reached by a webhook, and cannot be left enabled by
+  // accident. Its verify() also fails closed — this is the second lock, not the
+  // only one.
+  ...(process.env.NODE_ENV === "production" ? {} : { mock: new MockProvider() }),
   // staah: new StaahProvider(),
   // siteminder: new SiteMinderProvider(),
 };

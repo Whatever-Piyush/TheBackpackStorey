@@ -20,7 +20,9 @@ import type {
 
 export type IngestOutcome =
   | { status: "applied"; reservationCode: string }
-  | { status: "duplicate"; reservationId: string | null }
+  // A retry must learn WHICH booking its reference already became, or it cannot
+  // reconcile and will keep resending.
+  | { status: "duplicate"; reservationId: string | null; reservationCode?: string | null }
   | { status: "failed"; error: string };
 
 export async function ingestReservation(
@@ -80,6 +82,9 @@ export async function ingestReservation(
     p_units: message.units,
     p_external_ref: message.externalRef,
     p_amount_paise: message.amountPaise,
+    // Cross-checked in the function against current_user: only a machine caller
+    // may claim this, so the audit trail cannot be forged by a staff session.
+    p_source: "webhook",
     p_actor_id: null,
     p_actor_label: `Channel: ${providerId}`,
   });
@@ -89,6 +94,7 @@ export async function ingestReservation(
     ok: boolean;
     code?: string;
     reservationId?: string;
+    reservationCode?: string;
     available?: number;
   };
 
@@ -101,14 +107,21 @@ export async function ingestReservation(
       );
     }
     if (result?.code === "DUPLICATE_REFERENCE") {
+      // Not an error. The Channel Manager resent something we already have —
+      // record which reservation it maps to so the next retry short-circuits at
+      // the inbox instead of reaching the engine again.
       await db.rpc("complete_channel_inbound", {
         p_provider_id: providerId,
         p_external_id: message.externalId,
         p_status: "duplicate",
-        p_reservation_id: null,
+        p_reservation_id: result.reservationId ?? null,
         p_error: null,
       });
-      return { status: "duplicate", reservationId: null };
+      return {
+        status: "duplicate",
+        reservationId: result.reservationId ?? null,
+        reservationCode: result.reservationCode ?? null,
+      };
     }
     return fail(`Reservation refused: ${result?.code ?? "unknown"}.`);
   }

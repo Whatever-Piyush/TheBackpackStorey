@@ -297,7 +297,7 @@ describe("channels are data", () => {
 
     const { rows: ota } = await db.query<{ r: { ok: boolean; reservationId: string } }>(
       `select create_channel_reservation('ota_agoda', $1, '+91', $2::date, $3::date,
-                                          $4, 1, $5, 777000, $6, 'T') as r`,
+                                          $4, 1, $5, 777000, 'reception', $6, 'T') as r`,
       [`Guest ${TAG}`, from, plus(from, 2), typeId, `${TAG}-A1`, DESK],
     );
     assert.equal(ota[0].r.ok, true);
@@ -312,7 +312,7 @@ describe("channels are data", () => {
     // A direct channel falls back to our own rate calendar.
     const { rows: direct } = await db.query<{ r: { ok: boolean; reservationId: string } }>(
       `select create_channel_reservation('walk_in', $1, '+91', $2::date, $3::date,
-                                          $4, 1, null, 0, $5, 'T') as r`,
+                                          $4, 1, null, 0, 'reception', $5, 'T') as r`,
       [`Guest ${TAG}`, plus(from, 10), plus(from, 12), typeId, DESK],
     );
     const { rows: f2 } = await db.query<{ f: { chargesPaise: number } }>(
@@ -363,14 +363,14 @@ describe("inbound", () => {
     // exclusion constraint, not the allotment, is what stops the seventh.
     const all = await db.query<{ r: { ok: boolean } }>(
       `select create_channel_reservation('ota_booking', $1, '+91', $2::date, $3::date,
-                                          $4, 6, $5, 100000, $6, 'T') as r`,
+                                          $4, 6, $5, 100000, 'reception', $6, 'T') as r`,
       [`Guest ${TAG}`, from, plus(from, 1), typeId, `${TAG}-ALL`, DESK],
     );
     assert.equal(all.rows[0].r.ok, true, "all six beds taken");
 
     const over = await db.query<{ r: { ok: boolean; code: string } }>(
       `select create_channel_reservation('ota_agoda', $1, '+91', $2::date, $3::date,
-                                          $4, 1, $5, 100000, $6, 'T') as r`,
+                                          $4, 1, $5, 100000, 'reception', $6, 'T') as r`,
       [`Guest ${TAG}`, from, plus(from, 1), typeId, `${TAG}-OVER`, DESK],
     );
     assert.equal(over.rows[0].r.ok, false, "the seventh bed does not exist");
@@ -383,14 +383,14 @@ describe("inbound", () => {
 
     const first = await db.query<{ r: { ok: boolean } }>(
       `select create_channel_reservation('ota_expedia', $1, '+91', $2::date, $3::date,
-                                          $4, 1, $5, 100000, $6, 'T') as r`,
+                                          $4, 1, $5, 100000, 'reception', $6, 'T') as r`,
       args,
     );
     assert.equal(first.rows[0].r.ok, true);
 
     const second = await db.query<{ r: { ok: boolean; code: string } }>(
       `select create_channel_reservation('ota_expedia', $1, '+91', $2::date, $3::date,
-                                          $4, 1, $5, 100000, $6, 'T') as r`,
+                                          $4, 1, $5, 100000, 'reception', $6, 'T') as r`,
       args,
     );
     assert.equal(second.rows[0].r.ok, false);

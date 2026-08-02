@@ -28,11 +28,30 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("full_name, role")
     .eq("id", user.id)
     .maybeSingle();
+
+  // Do NOT swallow this.
+  //
+  // The previous version destructured only `data`, so a failed query and a user
+  // with no profile row were indistinguishable: both produced role = null. That
+  // matters because the most likely failure here is `permission denied for table
+  // profiles` — a missing grant — and it presented as "this user has no role".
+  // Staff would be bounced to a page they also could not use, with nothing in any
+  // log pointing at the grant. Exactly the shape of bug this codebase has already
+  // hit twice.
+  //
+  // A genuinely absent row is not an error: maybeSingle() returns data = null,
+  // error = null, and that path still yields role = null below.
+  if (error) {
+    throw new Error(
+      `Could not read the profile for ${user.id}: ${error.message}. ` +
+        `This is usually a missing grant on public.profiles, not a missing user.`,
+    );
+  }
 
   return {
     userId: user.id,

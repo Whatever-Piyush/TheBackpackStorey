@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import type { ChannelProvider } from "../provider.ts";
 import {
   ChannelPayloadError,
@@ -59,11 +60,36 @@ export class MockProvider implements ChannelProvider {
 
   /* ---- inbound: pure translation, no database, no side effects ---- */
 
+  /**
+   * Fails closed.
+   *
+   * The previous version returned `true` when the secret was unset, which made an
+   * unconfigured deployment accept any unsigned request — and the fix for that is
+   * not "remember to set the secret", because the next environment, the next
+   * rotation, or a typo in a variable name reopens it silently.
+   *
+   * Signature is HMAC-SHA256 over `timestamp + "." + rawBody`, so the timestamp
+   * is covered and cannot be swapped to replay an old body.
+   */
   verify(request: IncomingRequest): boolean {
     const secret = process.env.CHANNEL_MOCK_SECRET;
-    // Unset in development; a real provider would never be this forgiving.
-    if (!secret) return true;
-    return request.headers["x-mock-signature"] === secret;
+    if (!secret) return false;
+
+    const timestamp = request.headers["x-mock-timestamp"];
+    const signature = request.headers["x-mock-signature"];
+    if (!timestamp || !signature) return false;
+
+    const sentAt = Number(timestamp);
+    if (!Number.isFinite(sentAt)) return false;
+
+    const now = request.receivedAt ?? Date.now();
+    if (Math.abs(now - sentAt) > REPLAY_WINDOW_MS) return false;
+
+    const expected = createHmac("sha256", secret)
+      .update(`${timestamp}.${request.rawBody}`)
+      .digest("hex");
+
+    return timingSafeEqualHex(expected, signature);
   }
 
   receiveReservation(raw: unknown): InboundReservation {
@@ -105,6 +131,27 @@ export class MockProvider implements ChannelProvider {
       checkin: date(p, "arrive"),
       checkout: date(p, "depart"),
     };
+  }
+}
+
+/**
+ * How far out of date a signed request may be. Long enough to survive hill
+ * internet and a retry, short enough that a captured request stops working.
+ */
+const REPLAY_WINDOW_MS = 5 * 60 * 1000;
+
+/**
+ * Compares two hex digests without leaking, through timing, how much of the
+ * prefix matched. `timingSafeEqual` throws on a length mismatch, so the lengths
+ * are checked first — that comparison is not secret, the digest length is fixed.
+ */
+function timingSafeEqualHex(expected: string, provided: string): boolean {
+  if (expected.length !== provided.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(provided, "hex"));
+  } catch {
+    // Not valid hex — not a signature we produced.
+    return false;
   }
 }
 

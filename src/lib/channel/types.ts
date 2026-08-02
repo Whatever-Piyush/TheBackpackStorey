@@ -101,6 +101,12 @@ export type SyncResult =
 export type IncomingRequest = {
   headers: Record<string, string>;
   rawBody: string;
+  /**
+   * When the request arrived, as epoch milliseconds. Injected rather than read
+   * from the clock inside verify() so the replay window is testable without
+   * waiting five minutes.
+   */
+  receivedAt?: number;
 };
 
 export class ChannelPayloadError extends Error {
