@@ -95,6 +95,29 @@ cleanup() { rm -rf "$WORKDIR"; }
 trap 'on_error $LINENO' ERR
 trap cleanup EXIT
 
+# ------------------------------------------------------------- what we dialled
+#
+# First line of every run, before anything that can fail, because the commonest
+# way this job breaks is being pointed at the wrong endpoint — and the resulting
+# error is a network timeout that names nothing.
+#
+# GitHub Actions runners are IPv4-only. db.<project>.supabase.co is IPv6-only.
+# The Session Pooler (aws-0-<region>.pooler.supabase.com:5432) is what works.
+# Printing the host makes that visible in the log instead of inferred from a
+# stack trace at 01:00.
+#
+# Host only. Never the user, never the password — this log is world-readable to
+# anyone with repository access.
+db_host() {
+  printf '%s' "${1:-}" | sed -E 's#^[^/]*//([^@]*@)?([^:/?]+).*#\2#'
+}
+
+if [ -n "${DATABASE_URL:-}" ]; then
+  log "Resolved database host: $(db_host "$DATABASE_URL")"
+else
+  log "Resolved database host: (DATABASE_URL is not set)"
+fi
+
 # ------------------------------------------------------------------- preflight
 
 for var in "${REQUIRED[@]}"; do

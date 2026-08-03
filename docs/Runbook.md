@@ -51,10 +51,20 @@ KNOWN PITFALLS — handle every one explicitly and tell me how you did it:
    postgresql-client is usually behind Supabase's Postgres. Pin the client version in the
    setup script and print both versions at the top of every run.
 
-3. Direct Postgres connections on Supabase may be IPv6-only. If the VPS has no IPv6, the
-   dump fails with a confusing network error. Use the Session Pooler connection string
-   (IPv4-capable, port 5432) unless you have verified IPv6 works. Do NOT use the transaction
-   pooler on 6543 — pg_dump does not work through it.
+3. **Use the Session Pooler for `SUPABASE_DB_URL`. Not the direct endpoint.**
+
+   | | |
+   |---|---|
+   | Host | `aws-0-<region>.pooler.supabase.com` |
+   | Port | **5432** |
+
+   GitHub Actions runners are **IPv4-only**. The direct endpoint
+   `db.<project>.supabase.co` is **IPv6-only** and must not be used for the backup
+   workflow — it fails with a confusing network error rather than a clear one, and it
+   fails at 01:00 when nobody is looking.
+
+   Do NOT use the transaction pooler on port **6543**: `pg_dump` needs a session
+   connection and does not work through it.
 
 4. btree_gist must exist before the allocations exclusion constraint can be restored. The
    restore script creates extensions first, in their own step.
@@ -187,8 +197,44 @@ R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
 BACKUP_ENCRYPTION_KEY=
 HEALTHCHECKS_URL=
-DATABASE_URL=                    # session pooler, for the backup job
+DATABASE_URL=                    # backup job — SESSION POOLER only:
+                                 #   aws-0-<region>.pooler.supabase.com  port 5432
+                                 # NOT db.<project>.supabase.co (IPv6-only), and
+                                 # NOT port 6543 (transaction pooler; pg_dump fails)
 ```
+
+### GitHub Actions secrets — where to get every value
+
+Repository → Settings → Secrets and variables → Actions → **New repository secret**.
+
+These seven are what `.github/workflows/backup.yml` reads. Until all seven exist, the
+nightly backup cannot run.
+
+| Secret | Where to get it |
+|---|---|
+| `SUPABASE_DB_URL` | Dashboard → Project Settings → Database → Connection string → **URI**. **Use the Session Pooler**: host `aws-0-<region>.pooler.supabase.com`, port **5432**. Paste the database password into it. Do **not** use `db.<project>.supabase.co` — that endpoint is IPv6-only and GitHub Actions runners are IPv4-only. Do **not** use port 6543 (transaction pooler); `pg_dump` needs a session connection. |
+| `BACKUP_PASSPHRASE` | Invent one, ≥32 characters, from a password manager. ⚠️ **Must ALSO be stored outside GitHub. An archive whose only passphrase lived in this GitHub account is unrecoverable.** Losing the account is one of the scenarios these backups exist to survive. |
+| `S3_BUCKET` | Cloudflare R2 → Create bucket. The bucket **name** only, e.g. `backpackers-storey-backups`. |
+| `S3_ENDPOINT` | R2 → bucket → Settings → S3 API. Use the account-level form `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` — no bucket name on the end. |
+| `R2_ACCESS_KEY_ID` | R2 → Manage R2 API Tokens → Create API token, **Object Read & Write**, scoped to that bucket. Shown once. |
+| `R2_SECRET_ACCESS_KEY` | Same screen, same moment as the access key. Shown once — if you lose it, make a new token. |
+| `HEALTHCHECK_URL` | healthchecks.io → new check, period **1 day**, grace **6 hours** → copy its ping URL. Add a phone integration; Telegram and Signal are free, SMS/WhatsApp may need a paid plan. Do not leave it on email only. |
+
+> **The schedule only fires on the repository's DEFAULT branch.** A `backup.yml` sitting on a
+> feature branch is never listed in the Actions tab, never scheduled, and offers no
+> "Run workflow" button. Merge to the default branch, then confirm with `gh workflow list`.
+
+Trigger a run by hand rather than waiting for 01:00:
+
+```bash
+gh workflow run "Nightly database backup"
+gh run watch
+```
+
+Success is a `backup_runs` row with `status='ok'`, a plausible `byte_size`, row counts that
+match the property, and the log line
+`verified: archive decrypts, unpacks, and still contains every expected table`. A green tick
+without that line means the job reported success without proving the archive is readable.
 
 ### Cloudflare in front
 
@@ -295,25 +341,33 @@ then, this note is the whole workaround.
 **When:** database corrupted, project deleted, or a bad migration.
 
 ```bash
-# 1. newest backup
-rclone ls r2:backpackers-backups | sort -k2 | tail -5
-rclone copy r2:backpackers-backups/<file> ./
+**➜ Full procedure: [`docs/RESTORE.md`](./RESTORE.md).** Read that, not this summary.
 
-# 2. decrypt + decompress
-age -d -i ~/.age/key.txt <file>.age | gunzip > restore.sql
+```bash
+# 1. what is available
+scripts/restore.sh --list
 
-# 3. NEVER restore straight into production. Verify locally first.
-scripts/backup-verify.sh restore.sql
+# 2. NEVER restore straight into production. Into a scratch project first.
+scripts/restore.sh \
+  --target 'postgresql://postgres:PASSWORD@aws-0-<region>.pooler.supabase.com:5432/postgres' \
+  --key daily/<YYYY-MM-DD>.tar.gz.gpg
 
-# 4. only after row counts look right
-scripts/restore.sh restore.sql "$TARGET_DATABASE_URL"
+# 3. restore.sh prints row counts. Compare against backup_runs for the same dump.
 ```
 
+The script refuses to run when the target host **and** database both match `DATABASE_URL`,
+unless `RESTORE_CONFIRM=yes`.
+
 **Known caveats, expect them:**
-- `auth.users` restores separately. Staff may need password resets afterwards.
-- Storage objects are not in the database dump.
-- Extensions are created before data. If `btree_gist` is missing, the exclusion constraint
-  fails and the restore is incomplete — check for it explicitly.
+- **Supabase roles and extensions** are recreated by `restore.sh` before loading. Without
+  them the restore aborts on `role "supabase_admin" does not exist`, or dies partway with
+  `uuid has no default operator class for access method gist` when `btree_gist` is missing.
+  Both were hit for real during the rehearsal.
+- `auth.users` **is** included, in the same archive. If it fails to transfer between
+  projects the load stops on `profiles_id_fkey`; use `RESTORE_SKIP_FK=yes` to land the
+  bookings and re-invite staff afterwards.
+- Every profile with a role also needs a `staff` row, or `/reception` refuses them (§4).
+- Storage objects (passport and visa scans) are **not** in the database dump.
 
 **If the whole VPS is gone:** rebuild from section 2, restore `.env.production` from your
 password manager, `git clone`, run section 3. Nothing on the box is irreplaceable. That's
