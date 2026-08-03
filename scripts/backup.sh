@@ -102,7 +102,7 @@ trap cleanup EXIT
 # error is a network timeout that names nothing.
 #
 # GitHub Actions runners are IPv4-only. db.<project>.supabase.co is IPv6-only.
-# The Session Pooler (aws-0-<region>.pooler.supabase.com:5432) is what works.
+# The Session Pooler (aws-<N>-<region>.pooler.supabase.com:5432) is what works.
 # Printing the host makes that visible in the log instead of inferred from a
 # stack trace at 01:00.
 #
@@ -132,16 +132,35 @@ for tool in pg_dump psql gzip gpg aws curl tar; do
   command -v "$tool" >/dev/null 2>&1 || { log "FATAL: $tool is not installed."; ping_hc "/fail"; exit 1; }
 done
 
-# pg_dump must be at least the server's major version or it refuses to run. This
-# check turns a confusing mid-pipeline abort into a clear message.
-# Note: no `| head` in these pipelines. Under `set -o pipefail`, head exits after
-# the first line, the upstream process takes SIGPIPE, and the whole pipeline
-# reports failure — which would abort the backup for no reason. awk/sed/cut all
-# consume their input to the end.
-SERVER_MAJOR="$(psql_q 'show server_version' | cut -d. -f1)"
-CLIENT_MAJOR="$(pg_dump --version | awk '{print $NF}' | cut -d. -f1)"
+# pg_dump refuses to dump a server newer than itself, so this turns a confusing
+# mid-pipeline abort into a clear message.
+#
+# Both values are READ, never assumed: the server's from the server, the client's
+# from the binary that will actually run. Full versions, not just majors, because
+# "pg_dump is 16" does not say WHICH 16 — and on the run that caught this,
+# postgresql-client-17 was installed while /usr/bin/pg_dump was still 16.14 via
+# pg_wrapper. Seeing both exact builds is what made that legible.
+#
+# No `| head` in these pipelines: under `set -o pipefail` head exits after the
+# first line, the upstream process takes SIGPIPE, and the whole pipeline reports
+# failure. awk/sed/cut consume their input to the end.
+SERVER_VERSION="$(psql_q 'show server_version')"
+# Field 3, not $NF: the output is `pg_dump (PostgreSQL) 16.14 (Ubuntu 16.14-1.pgdg…)`
+# and the last field is the packaging string with a trailing paren, which reads as
+# nonsense in the failure message even though the major still parses out of it.
+CLIENT_VERSION="$(pg_dump --version | awk '{print $3}')"
+SERVER_MAJOR="${SERVER_VERSION%%.*}"
+CLIENT_MAJOR="${CLIENT_VERSION%%.*}"
+
+log "pg_dump ${CLIENT_VERSION} against server ${SERVER_VERSION}"
+
 if [ "$CLIENT_MAJOR" -lt "$SERVER_MAJOR" ]; then
-  log "FATAL: pg_dump is $CLIENT_MAJOR but the server is $SERVER_MAJOR. Install postgresql-client-${SERVER_MAJOR}."
+  log "FATAL: pg_dump is ${CLIENT_VERSION} but the server is ${SERVER_VERSION}."
+  log "       pg_dump refuses to dump a newer server. Install postgresql-client-${SERVER_MAJOR}"
+  log "       AND make sure it is first on PATH — /usr/bin/pg_dump is pg_wrapper and"
+  log "       keeps dispatching to the older version otherwise."
+  # No record_failure here: this runs before the backup_runs row is created, so
+  # there is nothing to update. The healthcheck /fail ping is the signal.
   ping_hc "/fail"
   exit 1
 fi

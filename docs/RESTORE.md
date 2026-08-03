@@ -170,7 +170,7 @@ For **restores and dumps**, use the **Session Pooler**:
 
 | | |
 |---|---|
-| Host | `aws-0-<region>.pooler.supabase.com` |
+| Host | `aws-<N>-<region>.pooler.supabase.com` |
 | Port | **5432** |
 
 `db.<project>.supabase.co` is IPv6-only and fails from IPv4-only hosts, including GitHub

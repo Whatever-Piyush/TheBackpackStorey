@@ -27,10 +27,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The Ubuntu runner ships an older postgresql-client. pg_dump refuses to
-      # dump a server newer than itself, so the major version is pinned to the
-      # server's. Bump this when Supabase upgrades Postgres.
-      - name: Install postgresql-client-17
+      # The Ubuntu runner ships postgresql-client-16 preinstalled, and pg_dump
+      # refuses to dump a server newer than itself. Bump PG_MAJOR when Supabase
+      # upgrades Postgres — it is the only place the version is named.
+      #
+      # Installing the package is NOT enough. /usr/bin/pg_dump is pg_wrapper from
+      # postgresql-client-common, which dispatches to a versioned binary under
+      # /usr/lib/postgresql/<v>/bin. Adding 17 alongside 16 leaves the wrapper
+      # still choosing 16, so the versioned bin directory has to go on PATH.
+      # This is exactly how the first run failed: the step printed
+      # "pg_dump (PostgreSQL) 16.14" and was still marked ✓.
+      - name: Install postgresql-client
+        env:
+          PG_MAJOR: "17"
         run: |
           set -Eeuo pipefail
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
@@ -38,8 +47,23 @@ jobs:
           echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17
+          sudo apt-get install -y -qq "postgresql-client-${PG_MAJOR}"
+
+          # Put the versioned binaries ahead of the wrapper for every later step.
+          echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> "$GITHUB_PATH"
+          export PATH="/usr/lib/postgresql/${PG_MAJOR}/bin:$PATH"
+
+          # Assert, do not print. A version nobody reads is not a check — that is
+          # precisely how 16.14 got through a step marked ✓.
           pg_dump --version
+          pg_dump --version | grep -q "PostgreSQL) ${PG_MAJOR}" || {
+            echo "::error::pg_dump is not ${PG_MAJOR} — got: $(pg_dump --version)"
+            exit 1
+          }
+          psql --version | grep -q "PostgreSQL) ${PG_MAJOR}" || {
+            echo "::error::psql is not ${PG_MAJOR} — got: $(psql --version)"
+            exit 1
+          }
 
       - name: Run backup
         env:

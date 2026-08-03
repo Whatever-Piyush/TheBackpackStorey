@@ -55,8 +55,12 @@ KNOWN PITFALLS — handle every one explicitly and tell me how you did it:
 
    | | |
    |---|---|
-   | Host | `aws-0-<region>.pooler.supabase.com` |
+   | Host | `aws-<N>-<region>.pooler.supabase.com` |
    | Port | **5432** |
+
+   `<N>` is **not always 0** — this project resolves to `aws-1-ap-south-1`. Copy the host
+   from the dashboard rather than typing it; `backup.sh` prints the host it actually
+   dialled as its first log line so you can confirm it.
 
    GitHub Actions runners are **IPv4-only**. The direct endpoint
    `db.<project>.supabase.co` is **IPv6-only** and must not be used for the backup
@@ -198,7 +202,7 @@ R2_SECRET_ACCESS_KEY=
 BACKUP_ENCRYPTION_KEY=
 HEALTHCHECKS_URL=
 DATABASE_URL=                    # backup job — SESSION POOLER only:
-                                 #   aws-0-<region>.pooler.supabase.com  port 5432
+                                 #   aws-<N>-<region>.pooler.supabase.com  port 5432
                                  # NOT db.<project>.supabase.co (IPv6-only), and
                                  # NOT port 6543 (transaction pooler; pg_dump fails)
 ```
@@ -212,7 +216,7 @@ nightly backup cannot run.
 
 | Secret | Where to get it |
 |---|---|
-| `SUPABASE_DB_URL` | Dashboard → Project Settings → Database → Connection string → **URI**. **Use the Session Pooler**: host `aws-0-<region>.pooler.supabase.com`, port **5432**. Paste the database password into it. Do **not** use `db.<project>.supabase.co` — that endpoint is IPv6-only and GitHub Actions runners are IPv4-only. Do **not** use port 6543 (transaction pooler); `pg_dump` needs a session connection. |
+| `SUPABASE_DB_URL` | Dashboard → Project Settings → Database → Connection string → **URI**. **Use the Session Pooler**: host `aws-<N>-<region>.pooler.supabase.com`, port **5432**. Paste the database password into it. Do **not** use `db.<project>.supabase.co` — that endpoint is IPv6-only and GitHub Actions runners are IPv4-only. Do **not** use port 6543 (transaction pooler); `pg_dump` needs a session connection. |
 | `BACKUP_PASSPHRASE` | Invent one, ≥32 characters, from a password manager. ⚠️ **Must ALSO be stored outside GitHub. An archive whose only passphrase lived in this GitHub account is unrecoverable.** Losing the account is one of the scenarios these backups exist to survive. |
 | `S3_BUCKET` | Cloudflare R2 → Create bucket. The bucket **name** only, e.g. `backpackers-storey-backups`. |
 | `S3_ENDPOINT` | R2 → bucket → Settings → S3 API. Use the account-level form `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` — no bucket name on the end. |
@@ -349,7 +353,7 @@ scripts/restore.sh --list
 
 # 2. NEVER restore straight into production. Into a scratch project first.
 scripts/restore.sh \
-  --target 'postgresql://postgres:PASSWORD@aws-0-<region>.pooler.supabase.com:5432/postgres' \
+  --target 'postgresql://postgres:PASSWORD@aws-<N>-<region>.pooler.supabase.com:5432/postgres' \
   --key daily/<YYYY-MM-DD>.tar.gz.gpg
 
 # 3. restore.sh prints row counts. Compare against backup_runs for the same dump.
