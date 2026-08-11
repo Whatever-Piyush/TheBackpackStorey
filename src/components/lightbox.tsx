@@ -4,6 +4,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { Photo } from "@/lib/site";
+import { Reveal } from "@/components/motion/reveal";
+
+// Cycled aspect ratios turn the same-source photos into an editorial masonry.
+// Fixed ratios reserve height, so there's no layout shift as images load.
+const ASPECTS = [
+  "aspect-[4/5]",
+  "aspect-[3/4]",
+  "aspect-square",
+  "aspect-[3/4]",
+  "aspect-[4/5]",
+  "aspect-[5/6]",
+];
 
 export function GalleryLightbox({ photos }: { photos: Photo[] }) {
   const [index, setIndex] = useState<number | null>(null);
@@ -35,14 +47,15 @@ export function GalleryLightbox({ photos }: { photos: Photo[] }) {
 
   return (
     <>
-      {/* grid */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      {/* masonry grid — revealed as one block; the modal below is a sibling so
+          the reveal's transform never becomes the fixed modal's containing box. */}
+      <Reveal className="columns-2 gap-3 sm:columns-3 lg:columns-4">
         {photos.map((p, i) => (
           <button
             key={p.src}
             type="button"
             onClick={() => setIndex(i)}
-            className="group relative aspect-[3/4] overflow-hidden rounded-xl border hairline"
+            className={`group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-xl border hairline ${ASPECTS[i % ASPECTS.length]}`}
             aria-label={`Open photo ${i + 1}`}
           >
             <Image
@@ -55,7 +68,7 @@ export function GalleryLightbox({ photos }: { photos: Photo[] }) {
             <span className="pointer-events-none absolute inset-0 bg-pine/0 transition-colors duration-300 group-hover:bg-pine/25" />
           </button>
         ))}
-      </div>
+      </Reveal>
 
       {/* lightbox */}
       {open ? (
