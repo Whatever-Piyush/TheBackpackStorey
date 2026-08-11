@@ -32,7 +32,7 @@ export function Cafe() {
           <div>
             <Reveal>
               <ElevationTag label="Rooftop café" />
-              <h2 className="mt-5 font-display text-4xl font-extrabold tracking-tight text-paper sm:text-5xl">
+              <h2 className="mt-5 font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
                 {CAFE.name}
               </h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-sage sm:text-lg">{CAFE.blurb}</p>

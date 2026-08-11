@@ -16,7 +16,7 @@ export function Intro() {
         <div className="md:col-span-7">
           <Reveal>
             <ElevationTag label="The property" elevation={SITE.elevation.property} />
-            <h2 className="mt-6 max-w-2xl font-display text-4xl font-extrabold leading-[1.03] tracking-tight text-paper sm:text-5xl">
+            <h2 className="mt-6 max-w-2xl font-display text-3xl font-extrabold leading-tight tracking-tight text-paper sm:text-4xl">
               Tiny on purpose. Big on the part that matters.
             </h2>
           </Reveal>
