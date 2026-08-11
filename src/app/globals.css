@@ -39,33 +39,25 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Native smooth scroll benefits the hash-nav (/#cafe, /#bir, /#visit); disable it
+   when the visitor asks for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   color: var(--color-paper);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 
-  /* Dusk-sky depth: a warm dawn glow top-left, a bright indigo bloom top-right,
-     and a violet haze rising from the horizon. Fixed so it sits behind scroll. */
+  /* Plain pine base. The dusk-sky depth (three radials that used to live here on a
+     `background-attachment: fixed` layer) now renders as a fixed <Atmosphere/>
+     element in the marketing layout — a composited layer that doesn't repaint on
+     scroll. Portal/reception intentionally keep this plain pine background. */
   background-color: var(--color-pine);
-  background-image:
-    radial-gradient(
-      1100px 520px at 12% -8%,
-      color-mix(in srgb, var(--color-amber) 11%, transparent),
-      transparent 62%
-    ),
-    radial-gradient(
-      1000px 640px at 108% 2%,
-      color-mix(in srgb, var(--color-violet) 26%, transparent),
-      transparent 58%
-    ),
-    radial-gradient(
-      1200px 900px at 50% 118%,
-      color-mix(in srgb, #59308f 32%, transparent),
-      transparent 60%
-    );
-  background-attachment: fixed;
-  background-repeat: no-repeat;
   min-height: 100dvh;
 }
 
