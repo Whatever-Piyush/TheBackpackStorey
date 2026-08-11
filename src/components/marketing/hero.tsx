@@ -4,54 +4,75 @@ import { LogIn, LogOut, MapPin, Mountain } from "lucide-react";
 import { PHOTOS, SITE } from "@/lib/site";
 import { BookingButton } from "@/components/booking-button";
 import { ElevationTag } from "@/components/elevation-tag";
+import { Parallax } from "@/components/motion/parallax";
+import { Reveal } from "@/components/motion/reveal";
+import { WordReveal } from "@/components/motion/word-reveal";
 
+const STATS = [
+  { Icon: LogIn, k: "Check-in", v: SITE.checkIn },
+  { Icon: LogOut, k: "Check-out", v: SITE.checkOut },
+  { Icon: Mountain, k: "Elevation", v: `${SITE.elevation.property.toLocaleString("en-IN")} m` },
+  { Icon: MapPin, k: "Coordinates", v: `${SITE.coords.lat.toFixed(4)}°N · ${SITE.coords.lng.toFixed(4)}°E` },
+];
+
+/**
+ * Homepage hero. Server component; the motion lives in small client islands
+ * (Parallax backdrop, WordReveal headline, staged Reveal entrances) so the page
+ * stays server-first. One cohesive top-down entrance on load + a subtle scroll
+ * parallax on the backdrop — cinematic, not busy. All motion is reduced-motion
+ * safe, and the section clips its own overflow so nothing scrolls sideways.
+ */
 export function Hero() {
   return (
-    <section className="relative isolate flex min-h-[90vh] flex-col justify-end overflow-hidden">
-      <Image
-        src={PHOTOS.heroCafe.src}
-        alt={PHOTOS.heroCafe.alt}
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover object-center"
-      />
+    <section className="relative isolate flex min-h-[90dvh] flex-col justify-end overflow-hidden">
+      {/* Decorative backdrop with a subtle scroll parallax. Oversized vertically
+          so the drift never exposes an edge; the section's overflow-hidden clips
+          it, and the Y-only transform can't cause horizontal overflow. */}
+      <Parallax distance={40} className="pointer-events-none absolute inset-x-0 -inset-y-[10%]">
+        <Image
+          src={PHOTOS.heroCafe.src}
+          alt={PHOTOS.heroCafe.alt}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+      </Parallax>
       <div className="absolute inset-0 bg-gradient-to-t from-pine via-pine/70 to-pine/30" />
 
       <div className="relative mx-auto w-full max-w-6xl px-5 pb-14 pt-36 sm:px-8">
-        <ElevationTag
-          label="Bir · Billing"
-          elevation={SITE.elevation.launch}
-          size="lg"
-          className="border-paper/25 bg-pine/55 text-paper shadow-lg backdrop-blur-md"
-        />
+        <Reveal>
+          <ElevationTag
+            label="Bir · Billing"
+            elevation={SITE.elevation.launch}
+            size="lg"
+            className="border-paper/25 bg-pine/55 text-paper shadow-lg backdrop-blur-md"
+          />
+        </Reveal>
         <h1 className="mt-6 max-w-3xl font-display text-5xl font-extrabold leading-[0.95] tracking-tight text-paper sm:text-7xl">
-          Sleep where the sky launches.
+          <WordReveal text="Sleep where the sky launches." delay={140} />
         </h1>
-        <p className="mt-5 max-w-xl text-lg leading-relaxed text-sage">
-          A small backpacker hostel and rooftop café in Bir — a six-bed dorm, a
-          handful of private rooms, and a valley view under the world&apos;s
-          second-highest paragliding launch.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <BookingButton>Book a bed</BookingButton>
-          <Link
-            href="/rooms"
-            className="inline-flex items-center gap-1.5 rounded-full border border-paper/30 px-5 py-2.5 text-sm font-medium text-paper transition-colors hover:border-amber hover:text-amber"
-          >
-            See the rooms
-          </Link>
-        </div>
+        <Reveal delay={320}>
+          <p className="mt-5 max-w-xl text-lg leading-relaxed text-sage">
+            A small backpacker hostel and rooftop café in Bir — a six-bed dorm, a
+            handful of private rooms, and a valley view under the world&apos;s
+            second-highest paragliding launch.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <BookingButton>Book a bed</BookingButton>
+            <Link
+              href="/rooms"
+              className="inline-flex items-center gap-1.5 rounded-full border border-paper/30 px-5 py-2.5 text-sm font-medium text-paper transition-colors hover:border-amber hover:text-amber"
+            >
+              See the rooms
+            </Link>
+          </div>
+        </Reveal>
       </div>
 
-      <div className="relative border-t hairline bg-pine/50 backdrop-blur-md">
+      <Reveal delay={460} className="relative border-t hairline bg-pine/50 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2.5 px-5 py-4 sm:gap-3 sm:px-8">
-          {[
-            { Icon: LogIn, k: "Check-in", v: SITE.checkIn },
-            { Icon: LogOut, k: "Check-out", v: SITE.checkOut },
-            { Icon: Mountain, k: "Elevation", v: `${SITE.elevation.property.toLocaleString("en-IN")} m` },
-            { Icon: MapPin, k: "Coordinates", v: `${SITE.coords.lat.toFixed(4)}°N · ${SITE.coords.lng.toFixed(4)}°E` },
-          ].map((c) => (
+          {STATS.map((c) => (
             <span
               key={c.k}
               className="inline-flex items-center gap-2.5 rounded-full border hairline bg-pine/40 px-4 py-2 transition-colors hover:border-amber/50"
@@ -62,7 +83,7 @@ export function Hero() {
             </span>
           ))}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
