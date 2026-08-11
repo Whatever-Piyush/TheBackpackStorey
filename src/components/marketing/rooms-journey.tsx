@@ -82,24 +82,20 @@ function RoomsPinned({ rooms }: { rooms: Room[] }) {
   const x = useTransform(scrollYProgress, [0, 1], ["0vw", `-${endVw}vw`]);
   const outerVh = Math.round(100 + endVw); // ~1vh of scroll per 1vw of pan
 
-  // Keyboard support: when a card's link is focused, scroll the page to the
-  // vertical offset that pans that card into view (the pan is scroll-driven, so
-  // the browser can't reveal it on its own). onFocus — not a scroll listener.
-  function focusScroll(i: number) {
-    const el = ref.current;
-    if (!el) return;
-    const range = el.offsetHeight - window.innerHeight;
-    const denom = rooms.length > 1 ? rooms.length - 1 : 1;
-    window.scrollTo({ top: el.offsetTop + (i / denom) * range });
-  }
+  // No manual focus handling. An earlier onFocus→window.scrollTo tried to pan a
+  // keyboard-focused card into view, but the pan is transform-driven (the card is
+  // "off-screen" to the browser), so our scroll raced the browser's own
+  // scroll-into-view and produced erratic jumps. Keyboard Tab already reaches
+  // every room link, and the "All rooms" link above is the linear, fully
+  // accessible path to every room — so no scroll repositioning is needed here.
 
   return (
     <div ref={ref} style={{ height: `${outerVh}vh` }} className="relative mt-10">
       <div className="sticky top-0 flex h-[100dvh] w-full items-center overflow-hidden">
         <motion.ul style={{ x }} className="flex items-stretch gap-[2.5vw] pl-[6vw] pr-[6vw]">
-          {rooms.map((room, i) => (
+          {rooms.map((room) => (
             <li key={room.slug} className="h-[74dvh] max-h-[680px] w-[64vw] shrink-0">
-              <RoomJourneyCard room={room} onFocus={() => focusScroll(i)} />
+              <RoomJourneyCard room={room} />
             </li>
           ))}
         </motion.ul>

@@ -1,15 +1,25 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useSyncExternalStore } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { DUR, EASE_OUT, VIEWPORT } from "./tokens";
+
+// Hydration flag, the idiomatic way: the server snapshot is false, the client
+// snapshot is true, and the store never changes — so this reads false through
+// SSR + hydration and flips to true once mounted, with no setState-in-effect.
+const noopSubscribe = () => () => {};
 
 /**
  * Headline reveal: animates a short line in word-by-word as it enters view.
  * Word-level (not character-level) keeps the DOM small and screen-reader
  * friendly — the whole line is exposed via aria-label while the animated word
  * spans are aria-hidden. Reserve for short headlines (≤ ~8 words). Regular
- * spaces between words let the line wrap normally. Reduced-motion → plain text.
+ * spaces between words let the line wrap normally.
+ *
+ * Progressive enhancement: the plain, fully-visible line is the default. It's
+ * what renders on the server, before hydration, with JS disabled or slow, and
+ * under reduced motion — so the headline is always readable and crawlable. The
+ * word-by-word reveal only takes over once the client has mounted.
  */
 export function WordReveal({
   text,
@@ -25,7 +35,10 @@ export function WordReveal({
   wordGap?: number;
 }) {
   const reduce = useReducedMotion();
-  if (reduce) return <span className={className}>{text}</span>;
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+
+  // Visible fallback until the motion component is ready (or when motion is off).
+  if (!mounted || reduce) return <span className={className}>{text}</span>;
 
   const words = text.split(" ");
   return (

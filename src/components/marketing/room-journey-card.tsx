@@ -10,16 +10,9 @@ import type { Room } from "@/lib/site";
  * existing room detail route. No prices are shown: the data deliberately has
  * none, so we point to the booking page for live rates rather than invent any.
  *
- * Presentational only. `onFocus` lets the pinned desktop track scroll a focused
- * card into view for keyboard users; it is omitted in the native scroll layouts.
+ * Presentational only.
  */
-export function RoomJourneyCard({
-  room,
-  onFocus,
-}: {
-  room: Room;
-  onFocus?: () => void;
-}) {
+export function RoomJourneyCard({ room }: { room: Room }) {
   const photo = room.photos[0];
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-card border hairline bg-forest">
@@ -54,7 +47,6 @@ export function RoomJourneyCard({
         <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
             href={`/rooms/${room.slug}`}
-            onFocus={onFocus}
             className="inline-flex items-center gap-1.5 rounded-full bg-amber px-5 py-2.5 text-sm font-medium text-pine transition-colors hover:bg-amber/90"
           >
             View room <ArrowUpRight size={16} aria-hidden />
