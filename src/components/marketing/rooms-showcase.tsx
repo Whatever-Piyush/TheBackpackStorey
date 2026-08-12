@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { ROOMS } from "@/lib/site";
 import { ElevationTag } from "@/components/elevation-tag";
-import { RoomsJourney } from "@/components/marketing/rooms-journey";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
+import { RoomsFan } from "@/components/marketing/rooms-fan";
 
 export function RoomsShowcase() {
   return (
@@ -13,7 +14,7 @@ export function RoomsShowcase() {
           <div>
             <ElevationTag label="Stay" />
             <h2 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
-              A bed for every kind of traveller
+              <GradientShimmer>A bed for every kind of traveller</GradientShimmer>
             </h2>
           </div>
           <Link href="/rooms" className="inline-flex items-center gap-1.5 text-sm text-amber hover:text-paper">
@@ -25,9 +26,9 @@ export function RoomsShowcase() {
         </p>
       </div>
 
-      {/* Signature scroll interaction: pinned horizontal on desktop, native
-          scroll-snap on touch, static carousel under reduced motion. */}
-      <RoomsJourney rooms={ROOMS} />
+      {/* Signature interaction: a fanned deck of room cards you cycle through
+          (arrows / swipe / ← →); native scroll-snap under reduced motion. */}
+      <RoomsFan rooms={ROOMS} />
     </section>
   );
 }

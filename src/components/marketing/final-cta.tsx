@@ -2,11 +2,11 @@ import { SITE } from "@/lib/site";
 import { BookingButton } from "@/components/booking-button";
 import { ElevationTag } from "@/components/elevation-tag";
 import { Reveal } from "@/components/motion/reveal";
-import { WordReveal } from "@/components/motion/word-reveal";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
 
 /**
- * Final CTA — the emphatic close that bookends the hero: the same word-by-word
- * headline reveal, an oversized statement, then the booking action. Copy, the
+ * Final CTA — the emphatic close that bookends the hero: the same shimmering
+ * headline, an oversized statement, then the booking action. Copy, the
  * BookingButton (→ /book) and the phone link are unchanged.
  */
 export function FinalCta() {
@@ -17,7 +17,7 @@ export function FinalCta() {
         <ElevationTag label="Come up" elevation={SITE.elevation.property} className="mx-auto" />
       </Reveal>
       <h2 className="mx-auto mt-7 max-w-3xl font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-paper sm:text-6xl">
-        <WordReveal text="A bed, a bonfire and a valley to wake up to." />
+        <GradientShimmer>A bed, a bonfire and a valley to wake up to.</GradientShimmer>
       </h2>
       <Reveal delay={220} className="mt-9 flex justify-center">
         <BookingButton>Book a bed</BookingButton>

@@ -4,6 +4,7 @@ import { ElevationTag } from "@/components/elevation-tag";
 import { Marquee } from "@/components/marquee";
 import { Parallax } from "@/components/motion/parallax";
 import { Reveal } from "@/components/motion/reveal";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
 
 /**
  * Café — a large atmospheric feature image paired with editorial copy, then the
@@ -33,7 +34,7 @@ export function Cafe() {
             <Reveal>
               <ElevationTag label="Rooftop café" />
               <h2 className="mt-5 font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
-                {CAFE.name}
+                <GradientShimmer>{CAFE.name}</GradientShimmer>
               </h2>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-sage sm:text-lg">{CAFE.blurb}</p>
             </Reveal>

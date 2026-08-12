@@ -2,6 +2,7 @@ import { GALLERY } from "@/lib/site";
 import { ElevationTag } from "@/components/elevation-tag";
 import { GalleryLightbox } from "@/components/lightbox";
 import { Reveal } from "@/components/motion/reveal";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
 
 /**
  * Gallery — an editorial masonry of the property's own photos. Composition and
@@ -16,7 +17,7 @@ export function Gallery() {
         <Reveal>
           <ElevationTag label="The place" />
           <h2 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
-            Have a look around
+            <GradientShimmer>Have a look around</GradientShimmer>
           </h2>
           <p className="mt-3 text-sm text-sage/80">Tap any photo to open the gallery.</p>
         </Reveal>

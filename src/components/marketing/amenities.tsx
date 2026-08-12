@@ -2,6 +2,7 @@ import { AMENITIES } from "@/lib/site";
 import { ElevationTag } from "@/components/elevation-tag";
 import { Icon } from "@/components/icon";
 import { Reveal } from "@/components/motion/reveal";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
 
 /**
  * Amenities — a calm editorial spec-grid, not an animated icon wall. Each real
@@ -15,7 +16,7 @@ export function Amenities() {
       <Reveal>
         <ElevationTag label="What's here" />
         <h2 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
-          The small comforts
+          <GradientShimmer>The small comforts</GradientShimmer>
         </h2>
       </Reveal>
       <Reveal delay={120}>

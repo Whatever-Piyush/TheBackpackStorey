@@ -2,6 +2,7 @@ import Image from "next/image";
 import { PHOTOS, SITE } from "@/lib/site";
 import { ElevationTag } from "@/components/elevation-tag";
 import { Reveal } from "@/components/motion/reveal";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
 
 /**
  * Intro — the editorial transition from the hero into the property story.
@@ -17,7 +18,7 @@ export function Intro() {
           <Reveal>
             <ElevationTag label="The property" elevation={SITE.elevation.property} />
             <h2 className="mt-6 max-w-2xl font-display text-3xl font-extrabold leading-tight tracking-tight text-paper sm:text-4xl">
-              Tiny on purpose. Big on the part that matters.
+              <GradientShimmer>Tiny on purpose. Big on the part that matters.</GradientShimmer>
             </h2>
           </Reveal>
           <Reveal delay={140} className="mt-6 max-w-xl space-y-5 text-base leading-relaxed text-sage sm:text-lg">

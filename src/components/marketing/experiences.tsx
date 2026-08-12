@@ -3,6 +3,7 @@ import { ElevationTag } from "@/components/elevation-tag";
 import { Icon } from "@/components/icon";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger, StaggerItem } from "@/components/motion/stagger";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
 
 /**
  * Experiences — an editorial, numbered list rather than a card grid. The data
@@ -19,7 +20,7 @@ export function Experiences() {
         <Reveal>
           <ElevationTag label="Experiences" />
           <h2 className="mt-4 max-w-2xl font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
-            Fly, wander, gather
+            <GradientShimmer>Fly, wander, gather</GradientShimmer>
           </h2>
         </Reveal>
 

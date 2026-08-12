@@ -3,6 +3,7 @@ import { ElevationTag } from "@/components/elevation-tag";
 import { Icon } from "@/components/icon";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger, StaggerItem } from "@/components/motion/stagger";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
 
 /**
  * Around Bir — place and context, as a distance-led editorial list rather than a
@@ -20,7 +21,7 @@ export function AroundBir() {
         <Reveal>
           <ElevationTag label="Around Bir" />
           <h2 className="mt-4 max-w-2xl font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
-            You did not come this far to stay in your room
+            <GradientShimmer>You did not come this far to stay in your room</GradientShimmer>
           </h2>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-sage">
             Hidden waterfalls, the paragliding capital of India and pure adrenaline —

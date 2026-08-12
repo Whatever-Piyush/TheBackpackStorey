@@ -6,7 +6,7 @@ import { BookingButton } from "@/components/booking-button";
 import { ElevationTag } from "@/components/elevation-tag";
 import { Parallax } from "@/components/motion/parallax";
 import { Reveal } from "@/components/motion/reveal";
-import { WordReveal } from "@/components/motion/word-reveal";
+import { GradientShimmer } from "@/components/motion/gradient-shimmer";
 
 const STATS = [
   { Icon: LogIn, k: "Check-in", v: SITE.checkIn },
@@ -50,7 +50,7 @@ export function Hero() {
           />
         </Reveal>
         <h1 className="mt-6 max-w-3xl font-display text-5xl font-extrabold leading-[0.95] tracking-tight text-paper sm:text-7xl">
-          <WordReveal text="Sleep where the sky launches." delay={140} />
+          <GradientShimmer>Sleep where the sky launches.</GradientShimmer>
         </h1>
         <Reveal delay={320}>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-sage">
