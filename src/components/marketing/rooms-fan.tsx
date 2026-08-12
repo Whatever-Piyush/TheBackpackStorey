@@ -96,7 +96,7 @@ function fanTransform(o: number, spread: number, isActive: boolean): Frame {
 function hoverAdjust(base: Frame, isHovered: boolean, o: number, oHover: number | null, spread: number): Frame {
   if (oHover === null) return base;
   if (isHovered) {
-    return { ...base, y: base.y - 44, rotate: base.rotate * 0.25, scale: base.scale + 0.08, zIndex: 60 };
+    return { ...base, y: base.y - 28, rotate: base.rotate * 0.25, scale: base.scale + 0.05, zIndex: 60 };
   }
   const side = o < oHover ? -1 : 1; // sits left of the hovered card → slide left, and vice-versa
   const dist = Math.abs(o - oHover) || 1;
@@ -189,7 +189,10 @@ export function RoomsFan({ rooms }: { rooms: Room[] }) {
         onPointerUp={onPointerUp}
         onPointerLeave={() => (pointerX.current = null)}
         onMouseLeave={() => setHovered(null)}
-        className="relative mx-auto flex h-[580px] w-full touch-pan-y select-none items-center justify-center overflow-hidden sm:h-[600px]"
+        // `isolate` scopes the cards' z-indexes to this stage so they can never
+        // paint over the sticky site header; the extra height gives the hovered
+        // card room to lift without the top being clipped by `overflow-hidden`.
+        className="relative mx-auto flex h-[620px] w-full touch-pan-y select-none items-center justify-center overflow-hidden isolate sm:h-[640px]"
       >
         <div ref={stageRef} className="absolute inset-0" aria-hidden />
         {rooms.map((room, i) => {
