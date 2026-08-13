@@ -29,6 +29,7 @@
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-space-mono), ui-monospace, "Space Mono", monospace;
+  --font-hand: var(--font-zeyada), "Segoe Script", cursive;
 }
 
 :root {

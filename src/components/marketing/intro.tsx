@@ -1,14 +1,15 @@
-import Image from "next/image";
 import { PHOTOS, SITE } from "@/lib/site";
 import { ElevationTag } from "@/components/elevation-tag";
 import { Reveal } from "@/components/motion/reveal";
 import { GradientShimmer } from "@/components/motion/gradient-shimmer";
+import { PhotoStack } from "@/components/marketing/photo-stack";
 
 /**
  * Intro — the editorial transition from the hero into the property story.
  * Asymmetric 7/5 composition: a strong typographic statement and copy on the
- * left, an offset image pair on the right. Content is unchanged; motion is a
- * restrained staged reveal (heading → copy → chips) plus a single image reveal.
+ * left, a tilted "polaroid" photo stack on the right. Content is unchanged;
+ * motion is a restrained staged reveal (heading → copy → chips) plus the stack's
+ * own hover/entrance.
  */
 export function Intro() {
   return (
@@ -44,27 +45,13 @@ export function Intro() {
           </Reveal>
         </div>
 
-        <div className="md:col-span-5">
-          <Reveal delay={120} className="grid grid-cols-2 gap-3 sm:gap-4">
-            <div className="group relative aspect-[4/5] overflow-hidden rounded-card border hairline">
-              <Image
-                src={PHOTOS.exterior.src}
-                alt={PHOTOS.exterior.alt}
-                fill
-                sizes="(min-width:768px) 22vw, 45vw"
-                className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-              />
-            </div>
-            <div className="group relative mt-10 aspect-[4/5] overflow-hidden rounded-card border hairline">
-              <Image
-                src={PHOTOS.sign.src}
-                alt={PHOTOS.sign.alt}
-                fill
-                sizes="(min-width:768px) 22vw, 45vw"
-                className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-              />
-            </div>
-          </Reveal>
+        <div className="flex items-center md:col-span-5">
+          <PhotoStack
+            items={[
+              { ...PHOTOS.exterior, caption: "Out front, at dusk", rotation: -8, offset: { x: -58, y: -6 } },
+              { ...PHOTOS.sign, caption: "Painted by hand", rotation: 9, offset: { x: 58, y: 16 } },
+            ]}
+          />
         </div>
       </div>
     </section>
