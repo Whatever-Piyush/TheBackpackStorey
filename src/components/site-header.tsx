@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { NAV, SITE } from "@/lib/site";
 import { BookingButton } from "@/components/booking-button";
+import { GradientNav } from "@/components/gradient-nav";
 
 function Wordmark() {
   return (
@@ -34,17 +35,9 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
         <Wordmark />
 
-        <nav className="hidden items-center gap-8 md:flex">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-base font-medium text-sage underline-offset-8 transition-colors hover:text-paper hover:underline hover:decoration-amber hover:decoration-2"
-            >
-              {item.label}
-            </Link>
-          ))}
-          <BookingButton className="ml-1" />
+        <nav className="hidden items-center gap-4 md:flex">
+          <GradientNav />
+          <BookingButton className="ml-2" />
         </nav>
 
         <button
