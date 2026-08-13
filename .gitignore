@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Database dumps: real guest and staff data, never committed.
 backups/
+
+# Vendored UI/UX Pro Max skill data — reinstall with `uipro init --ai claude`.
+.claude/skills/

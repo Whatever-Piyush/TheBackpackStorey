@@ -1,21 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { BarChart3, BookOpen, ChefHat, ReceiptIndianRupee, ShoppingCart } from "lucide-react";
+import { BookOpen, ChartColumn, ChefHat, ReceiptIndianRupee, ShoppingCart } from "lucide-react";
 import { requireRole, type Role } from "@/lib/auth";
+import { HubGrid, HubHeader, type HubTile } from "@/components/portal/hub";
 
 export const metadata: Metadata = {
   title: "Café POS",
   robots: { index: false, follow: false },
 };
 
-type Card = {
-  href: string;
-  label: string;
-  blurb: string;
-  icon: typeof BookOpen;
-  roles: Role[];
-  live: boolean;
-};
+type Card = HubTile & { roles: Role[] };
 
 const CARDS: Card[] = [
   {
@@ -54,7 +47,7 @@ const CARDS: Card[] = [
     href: "/pos/today",
     label: "Today",
     blurb: "Totals by method, open vs settled, close the day.",
-    icon: BarChart3,
+    icon: ChartColumn,
     roles: ["owner"],
     live: true,
   },
@@ -65,50 +58,15 @@ export default async function PosPage() {
   const cards = CARDS.filter((c) => role !== null && c.roles.includes(role));
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8">
-      <p className="font-data text-xs uppercase tracking-[0.2em] text-amber">Café POS</p>
-      <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-paper sm:text-4xl">
-        Counter
-      </h1>
-      <p className="mt-3 max-w-xl leading-relaxed text-sage">
-        Run the rooftop café — manage the menu, take orders, send them to the kitchen
-        live, and settle the bill.
-      </p>
+    <div className="mx-auto max-w-5xl px-5 py-14 sm:px-8 sm:py-16">
+      <HubHeader
+        eyebrow="Café POS"
+        title="Counter"
+        intro="Run the rooftop café — manage the menu, take orders, send them to the kitchen live, and settle the bill."
+      />
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        {cards.map((c) => {
-          const body = (
-            <>
-              <div className="flex items-center justify-between">
-                <c.icon size={22} strokeWidth={1.6} className="text-amber" aria-hidden />
-                {c.live ? null : (
-                  <span className="font-data text-[0.6rem] uppercase tracking-[0.18em] text-sage/70">
-                    Soon
-                  </span>
-                )}
-              </div>
-              <h2 className="mt-4 font-display text-lg font-bold text-paper">{c.label}</h2>
-              <p className="mt-1 text-sm text-sage">{c.blurb}</p>
-            </>
-          );
-
-          return c.live ? (
-            <Link
-              key={c.href}
-              href={c.href}
-              className="rounded-card border hairline bg-forest p-5 transition-colors hover:border-amber"
-            >
-              {body}
-            </Link>
-          ) : (
-            <div
-              key={c.href}
-              className="rounded-card border hairline bg-forest/50 p-5 opacity-70"
-            >
-              {body}
-            </div>
-          );
-        })}
+      <div className="mt-10">
+        <HubGrid tiles={cards} />
       </div>
     </div>
   );

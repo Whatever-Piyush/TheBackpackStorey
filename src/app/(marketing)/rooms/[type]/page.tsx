@@ -52,6 +52,7 @@ export default async function RoomDetailPage({ params }: Params) {
     <article className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
       <Link
         href="/rooms"
+        transitionTypes={["nav-back"]}
         className="inline-flex items-center gap-1.5 text-sm text-sage transition-colors hover:text-paper"
       >
         <ArrowLeft size={16} aria-hidden /> All rooms

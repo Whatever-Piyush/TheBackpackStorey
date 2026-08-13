@@ -126,6 +126,57 @@ button {
   box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--color-amber) 70%, transparent);
 }
 
+/* Portal hub tiles (§ops) — a raised dusk surface that lifts into gold on hover.
+   The wash sits on ::before at z-index -1 with the tile isolated, so it paints
+   over the tile's own background but under every child, positioned or not. */
+.tile {
+  isolation: isolate;
+  background-color: color-mix(in srgb, var(--color-forest) 88%, transparent);
+  background-image: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--color-moss) 55%, transparent),
+    transparent 58%
+  );
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-paper) 7%, transparent);
+  transition-property: transform, border-color, box-shadow;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    130% 120% at 0% 0%,
+    color-mix(in srgb, var(--color-amber) 15%, transparent),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+a.tile:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-amber) 55%, transparent);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-paper) 12%, transparent),
+    0 22px 46px -28px color-mix(in srgb, var(--color-amber) 75%, transparent);
+}
+a.tile:hover::before {
+  opacity: 1;
+}
+/* Not built yet — present, but clearly inert. */
+.tile-idle {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.tile:hover {
+    transform: none;
+  }
+}
+
 /* Lightbox image open animation. */
 @keyframes fadeZoom {
   from {
@@ -157,5 +208,97 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .marquee-track {
     animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Page transitions (marketing routes)
+
+   Driven by React's <ViewTransition> in (marketing)/layout.tsx. Exits are fast
+   so old content stops competing for attention; enters are slower and delayed
+   until the exit finishes. Links tagged transitionTypes={["nav-forward"]} /
+   ["nav-back"] slide horizontally; untagged navigation crossfades.
+--------------------------------------------------------------------------- */
+:root {
+  --vt-exit: 150ms;
+  --vt-enter: 210ms;
+  --vt-slide: 400ms;
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes vt-slide {
+  from {
+    translate: var(--vt-offset);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+/* Default: a soft crossfade in place. */
+::view-transition-old(.page-fade) {
+  animation: var(--vt-exit) ease-in both vt-fade reverse;
+}
+::view-transition-new(.page-fade) {
+  animation: var(--vt-enter) ease-out var(--vt-exit) both vt-fade;
+}
+
+/* Going deeper — old content leaves left, new arrives from the right. */
+::view-transition-old(.nav-forward) {
+  --vt-offset: -60px;
+  animation:
+    var(--vt-exit) ease-in both vt-fade reverse,
+    var(--vt-slide) ease-in-out both vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --vt-offset: 60px;
+  animation:
+    var(--vt-enter) ease-out var(--vt-exit) both vt-fade,
+    var(--vt-slide) ease-in-out both vt-slide;
+}
+
+/* Coming back — the mirror image. */
+::view-transition-old(.nav-back) {
+  --vt-offset: 60px;
+  animation:
+    var(--vt-exit) ease-in both vt-fade reverse,
+    var(--vt-slide) ease-in-out both vt-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --vt-offset: -60px;
+  animation:
+    var(--vt-enter) ease-out var(--vt-exit) both vt-fade,
+    var(--vt-slide) ease-in-out both vt-slide;
+}
+
+/* The sticky header is the spatial anchor: content moves, the bar does not.
+   Hiding the old snapshot avoids a flash of two stacked headers. */
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }

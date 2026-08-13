@@ -23,7 +23,14 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b hairline bg-pine/85 backdrop-blur-md">
+    // The view-transition name anchors the header during page transitions —
+    // content slides beneath it while the bar itself stays put (globals.css).
+    <header
+      style={{ viewTransitionName: "site-header" }}
+      // Glass bar: same pine tint, just more translucent so the frosted blur
+      // reads, with a faint top light-edge for the sheen. Colour is unchanged.
+      className="sticky top-0 z-50 border-b hairline bg-pine/55 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-xl backdrop-saturate-150"
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
         <Wordmark />
 
@@ -52,7 +59,7 @@ export function SiteHeader() {
       </div>
 
       {open ? (
-        <nav className="border-t hairline bg-forest px-5 py-4 md:hidden">
+        <nav className="border-t hairline bg-pine/70 px-5 py-4 backdrop-blur-xl md:hidden">
           <ul className="flex flex-col gap-1">
             {NAV.map((item) => (
               <li key={item.href}>

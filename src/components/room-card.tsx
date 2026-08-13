@@ -8,6 +8,7 @@ export function RoomCard({ room }: { room: Room }) {
   return (
     <Link
       href={`/rooms/${room.slug}`}
+      transitionTypes={["nav-forward"]}
       className="group flex flex-col overflow-hidden rounded-card border hairline bg-forest transition-colors hover:border-amber/50"
     >
       <div className="relative aspect-[4/5] overflow-hidden">
