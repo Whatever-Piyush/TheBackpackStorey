@@ -1,5 +1,6 @@
 import { ViewTransition } from "react";
 import { Atmosphere } from "@/components/marketing/atmosphere";
+import { ScrollSequence } from "@/components/marketing/scroll-sequence";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -14,6 +15,10 @@ export default function MarketingLayout({
       {/* Fixed dusk-sky backdrop (moved off `body` so it no longer repaints on
           scroll). Marketing-only, so the portal/reception stay plain pine. */}
       <Atmosphere />
+      {/* Page-wide scroll-driven paragliding background. Fixed + pointer-events-
+          none, layered above Atmosphere and behind content; Atmosphere shows
+          through while frames load and under reduced motion. */}
+      <ScrollSequence />
       {/* Thin scroll-progress bar pinned to the top of the viewport. */}
       <ScrollProgress />
       <SiteHeader />
