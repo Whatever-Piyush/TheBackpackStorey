@@ -1,15 +1,15 @@
-import { PHOTOS, SITE } from "@/lib/site";
+import { SITE } from "@/lib/site";
 import { ElevationTag } from "@/components/elevation-tag";
 import { Reveal } from "@/components/motion/reveal";
 import { GradientShimmer } from "@/components/motion/gradient-shimmer";
-import { PhotoStack } from "@/components/marketing/photo-stack";
+import { LunarMoon } from "@/components/marketing/lunar-moon";
 
 /**
  * Intro — the editorial transition from the hero into the property story.
  * Asymmetric 7/5 composition: a strong typographic statement and copy on the
- * left, a tilted "polaroid" photo stack on the right. Content is unchanged;
- * motion is a restrained staged reveal (heading → copy → chips) plus the stack's
- * own hover/entrance.
+ * left, an interactive WebGL moon on the right (tap it for its gravity ring).
+ * Copy is unchanged; motion is a restrained staged reveal (heading → copy →
+ * chips) plus the moon's own scene.
  */
 export function Intro() {
   return (
@@ -46,12 +46,7 @@ export function Intro() {
         </div>
 
         <div className="flex items-center md:col-span-5">
-          <PhotoStack
-            items={[
-              { ...PHOTOS.exterior, caption: "Out front, at dusk", rotation: -8, offset: { x: -58, y: -6 } },
-              { ...PHOTOS.sign, caption: "Painted by hand", rotation: 9, offset: { x: 58, y: 16 } },
-            ]}
-          />
+          <LunarMoon />
         </div>
       </div>
     </section>

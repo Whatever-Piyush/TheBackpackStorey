@@ -1,9 +1,12 @@
 "use client";
 
 import {
+  type ComponentType,
   type CSSProperties,
   type ElementType,
   type HTMLAttributes,
+  type ReactNode,
+  type Ref,
   useCallback,
   useEffect,
   useMemo,
@@ -478,7 +481,13 @@ export function GradientShimmer({
     ...style,
   };
 
-  const Tag = as;
+  // three/@react-three/fiber augment the global JSX namespace with their
+  // intrinsic elements, which collapses a dynamic `as={ElementType}` tag to
+  // `never`. Cast to a permissive component type so the spread props type-check;
+  // `as` is still a real tag/component (default "span") at runtime.
+  const Tag = as as ComponentType<
+    HTMLAttributes<HTMLElement> & { ref?: Ref<HTMLElement>; children?: ReactNode }
+  >;
   return (
     <Tag {...restProps} ref={attachRef} className={className} style={mergedStyle}>
       {children}
