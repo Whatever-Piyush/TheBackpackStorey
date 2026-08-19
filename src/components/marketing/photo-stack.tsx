@@ -22,7 +22,7 @@ export interface PhotoStackItem {
 
 /**
  * Photo stack — the property photos as tilted, overlapping "polaroid" cards on a
- * soft-paper mount, each with a handwritten caption. On hover a card straightens
+ * frosted-glass mount, each with a handwritten caption. On hover a card straightens
  * a touch, lifts, scales up and comes to the front; on entry they fade and settle
  * in with a small stagger.
  *
@@ -66,7 +66,7 @@ export function PhotoStack({ items }: { items: PhotoStackItem[] }) {
           >
             {/* Inner: the polaroid card + hover lift/straighten/scale. */}
             <div
-              className="h-[300px] w-[204px] rounded-lg bg-paper p-2.5 shadow-2xl sm:h-[332px] sm:w-[226px]"
+              className="h-[300px] w-[204px] rounded-lg border border-white/25 bg-white/10 p-2.5 shadow-[0_20px_45px_-12px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.3)] backdrop-blur-md sm:h-[332px] sm:w-[226px]"
               style={{
                 transform: `rotate(${isHovered ? item.rotation * 0.4 : item.rotation}deg) scale(${
                   isHovered ? 1.05 : 1
@@ -85,7 +85,7 @@ export function PhotoStack({ items }: { items: PhotoStackItem[] }) {
                 />
               </div>
               <div className="flex h-[18%] items-center justify-center">
-                <p className="font-hand text-2xl leading-none tracking-tight text-pine/60">
+                <p className="font-hand text-2xl leading-none tracking-tight text-paper [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]">
                   {item.caption}
                 </p>
               </div>

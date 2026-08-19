@@ -7,6 +7,7 @@ import { ElevationTag } from "@/components/elevation-tag";
 import { Parallax } from "@/components/motion/parallax";
 import { Reveal } from "@/components/motion/reveal";
 import { GradientShimmer } from "@/components/motion/gradient-shimmer";
+import { PhotoStack } from "@/components/marketing/photo-stack";
 
 const STATS = [
   { Icon: LogIn, k: "Check-in", v: SITE.checkIn },
@@ -39,6 +40,19 @@ export function Hero() {
         />
       </Parallax>
       <div className="absolute inset-0 bg-gradient-to-t from-pine via-pine/70 to-pine/30" />
+
+      {/* The property polaroids, re-attached to the hero: a tilted, overlapping
+          stack on the right that spreads on hover. Desktop-only so it never
+          crowds the headline; it sits over the café image without covering the
+          left-aligned copy. */}
+      <div className="absolute right-6 top-1/2 z-20 hidden w-[24rem] -translate-y-1/2 lg:block xl:right-16">
+        <PhotoStack
+          items={[
+            { ...PHOTOS.exterior, caption: "Out front, at dusk", rotation: -8, offset: { x: -56, y: -8 } },
+            { ...PHOTOS.sign, caption: "Painted by hand", rotation: 9, offset: { x: 56, y: 14 } },
+          ]}
+        />
+      </div>
 
       <div className="relative mx-auto w-full max-w-6xl px-5 pb-14 pt-36 sm:px-8">
         <Reveal>
