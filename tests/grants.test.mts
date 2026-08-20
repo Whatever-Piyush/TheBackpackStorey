@@ -32,8 +32,17 @@ const CONNECTION =
  *
  * public_booking_lookup is on this list until item 5 moves it behind the Next.js
  * route; when that lands, delete the entry and this test will enforce it.
+ *
+ * public_cancellation_policy (Phase 9, Phase 2) returns the published cancellation
+ * wording for /policies/cancellation — public text, no guest data — so anon EXECUTE
+ * is deliberate and safe.
  */
-const ANON_ALLOWED = ["public_availability", "public_booking_lookup", "public_quote"];
+const ANON_ALLOWED = [
+  "public_availability",
+  "public_booking_lookup",
+  "public_cancellation_policy",
+  "public_quote",
+];
 
 /** Functions created by an extension are that extension's business, not ours. */
 const NOT_FROM_EXTENSION = `
