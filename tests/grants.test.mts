@@ -131,7 +131,7 @@ describe("function execute grants", () => {
     // a long list.
     for (const [name, args] of [
       ["sync_units_for_room", "uuid"],
-      ["create_reservation", "jsonb, date, date, jsonb, text, uuid[], uuid, text"],
+      ["create_reservation", "jsonb, date, date, jsonb, text, uuid[], uuid, text, integer"],
     ] as const) {
       const { rows } = await db.query<{ ok: boolean }>(
         `select has_function_privilege('anon', $1, 'EXECUTE') as ok`,
@@ -146,7 +146,7 @@ describe("function execute grants", () => {
     // /api/book; authenticated is what the 19 RLS policies calling user_role()
     // are evaluated as.
     const checks: [string, string][] = [
-      ["service_role", "public.create_reservation(jsonb, date, date, jsonb, text, uuid[], uuid, text)"],
+      ["service_role", "public.create_reservation(jsonb, date, date, jsonb, text, uuid[], uuid, text, integer)"],
       ["authenticated", "public.user_role()"],
       ["service_role", "public.user_role()"],
     ];
