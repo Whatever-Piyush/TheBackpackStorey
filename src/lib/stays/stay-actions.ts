@@ -208,3 +208,59 @@ export async function markNoShow(
     } released.`,
   };
 }
+
+/**
+ * Cancel a booking from the desk, using the same server-side cancellation/accounting
+ * primitive as the guest flow. A fee waiver requires an explicit reason and is
+ * audited; the desk never chooses a refund amount — the server derives it from the
+ * reservation snapshot.
+ */
+export async function cancelStay(
+  _prev: StayResult | null,
+  formData: FormData,
+): Promise<StayResult> {
+  const session = await requireRole(DESK_ROLES);
+
+  const reservationId = String(formData.get("reservation_id") ?? "");
+  if (!reservationId) return { ok: false, error: "Missing reservation." };
+  const waiveFee = formData.get("waive_fee") === "on";
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("stays_cancel", {
+    p_reservation_id: reservationId,
+    p_actor_id: session.userId,
+    p_actor_label: session.fullName || session.email || "Reception",
+    p_waive_fee: waiveFee,
+    p_note: note,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  const result = data as {
+    ok: boolean;
+    code?: string;
+    refundable?: boolean;
+    refundPaise?: number;
+    forfeitPaise?: number;
+  };
+  if (!result?.ok) {
+    return {
+      ok: false,
+      error:
+        result?.code === "REASON_REQUIRED"
+          ? "Waiving the fee needs a reason."
+          : result?.code === "NOT_CANCELLABLE"
+            ? "That booking can't be cancelled — it's already closed or in-house."
+            : "Couldn't cancel that booking.",
+    };
+  }
+
+  revalidatePath("/stays/arrivals");
+  revalidatePath("/stays/board");
+  return {
+    ok: true,
+    message: result.refundable
+      ? `Cancelled — refund of ₹${((result.refundPaise ?? 0) / 100).toFixed(2)} initiated.`
+      : `Cancelled — ₹${((result.forfeitPaise ?? 0) / 100).toFixed(2)} deposit forfeited.`,
+  };
+}

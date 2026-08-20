@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { AlertTriangle, Globe, Plus, Trash2, Upload, UserCheck, UserX, X } from "lucide-react";
 import { checkIn, uploadGuestDocument, type CheckInResult, type GuestInput } from "@/lib/stays/check-in";
-import { markNoShow, type StayResult } from "@/lib/stays/stay-actions";
+import { cancelStay, markNoShow, type StayResult } from "@/lib/stays/stay-actions";
 import type { Arrival, PartyGuest } from "@/lib/stays/arrivals";
 
 /**
@@ -245,6 +245,10 @@ function CheckInDrawer({ arrival, onClose }: { arrival: Arrival; onClose: () => 
         {/* Only offered once they are genuinely late — someone arriving later
             today is not a no-show. */}
         {arrival.overdue && <NoShowForm reservationId={arrival.reservationId} />}
+
+        {/* Cancel a booking that isn't proceeding. The server derives the refund /
+            forfeiture from the reservation snapshot; a fee waiver needs a reason. */}
+        <CancelForm reservationId={arrival.reservationId} />
       </aside>
     </div>
   );
@@ -273,6 +277,57 @@ function NoShowForm({ reservationId }: { reservationId: string }) {
       {state && !state.ok && <p className="mt-2 text-sm text-amber">{state.error}</p>}
       {state?.ok && <p className="mt-2 text-sm text-emerald-400">{state.message}</p>}
     </form>
+  );
+}
+
+function CancelForm({ reservationId }: { reservationId: string }) {
+  const [state, action, pending] = useActionState<StayResult | null, FormData>(cancelStay, null);
+  const [open, setOpen] = useState(false);
+
+  if (state?.ok) {
+    return <p className="mt-3 border-t hairline pt-3 text-sm text-emerald-400">{state.message}</p>;
+  }
+  return (
+    <div className="mt-3 border-t hairline pt-3">
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-sm text-sage underline underline-offset-4 hover:text-amber"
+        >
+          Cancel this booking
+        </button>
+      ) : (
+        <form action={action} className="space-y-2 rounded-xl border hairline bg-pine/30 p-3">
+          <input type="hidden" name="reservation_id" value={reservationId} />
+          <label className="flex items-center gap-2 text-sm text-sage">
+            <input type="checkbox" name="waive_fee" className="accent-amber" /> Waive the cancellation fee
+          </label>
+          <input
+            name="note"
+            placeholder="Reason (required to waive the fee)"
+            className="w-full rounded-lg border hairline bg-pine px-3 py-2 text-sm text-paper outline-none focus:border-amber"
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-full bg-amber px-4 py-2 text-sm font-medium text-pine hover:bg-amber/90 disabled:opacity-50"
+            >
+              {pending ? "Cancelling…" : "Confirm cancellation"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-full border hairline px-4 py-2 text-sm text-paper hover:border-amber hover:text-amber"
+            >
+              Keep
+            </button>
+          </div>
+          {state && !state.ok && <p className="text-sm text-amber">{state.error}</p>}
+        </form>
+      )}
+    </div>
   );
 }
 

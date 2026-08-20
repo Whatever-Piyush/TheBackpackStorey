@@ -255,15 +255,19 @@ API 200 is **not** completion — only the `refund.processed` webhook posts the 
 payment (`apply_razorpay_refund_result`); `refund.failed` stays visible in `refunds`. Duplicate capture or
 refund events are inert (event + reference uniqueness).
 
-### Phase 5 — Cancellation, refunds, forfeiture accounting
-**Refundable (before cutoff):** reverse room charges with negative lines; `cancelled`/`guest`;
-allocations **deleted** (bed resellable at once); Razorpay refund initiated → negative payment,
-status pending. **Forfeited (after cutoff / no-show):** reverse room charges with negative lines;
-post a `cancellation_fee` line == retained deposit; folio nets to **zero**; no refund. Worked
-example that must hold:
+### Phase 5 — Cancellation, refunds, forfeiture accounting *(implemented)*
+**Reverse, never delete** (`0042`). `folio_items.kind` gains `reversal` and `cancellation_fee`.
+A cancellation posts **one consolidated `reversal` line = −(Σ room_night)** — the original
+room-night rows stay visible — guarded by a partial unique index `(folio_id) WHERE kind='reversal'`;
+the `cancellation_fee` line is guarded by `(folio_id) WHERE kind='cancellation_fee'` (one each per
+folio). **Refundable (before the stored cutoff):** reverse charges; `cancelled`/reason `guest`;
+allocations deleted (bed resellable at once); a `refunds(requested)` row opens — the negative
+payment appears only on `refund.processed` (Phase 4), never on the request. **Forfeited (after
+cutoff / no-show):** reverse charges + `cancellation_fee == retained deposit`; folio nets to **zero**;
+no refund:
 
 ```
-room charges          +₹6,000
+room charges          +₹6,000   (kept)
 deposit paid          −₹1,200
 charge reversal       −₹6,000
 cancellation fee      +₹1,200
@@ -271,17 +275,19 @@ cancellation fee      +₹1,200
 balance                    ₹0
 ```
 
-`cancel_reservation_with_policy()` does it all in **one transaction**, eligibility computed
-from the **snapshot** (not the current policy row). DB-enforced idempotency via the partial
-unique index — a retry raises rather than double-charging. **Inventory releases immediately;
-money settles asynchronously** (Razorpay refunds take 5–7 working days; the two clocks are
-uncoupled). Guest cancel at `/booking/[code]` requires code **and** phone, shows the refund
-computed from the snapshot before confirming, rate-limited, logged. Refund webhooks:
-`refund.processed → complete`; `refund.failed → visible staff queue, never swallowed`.
-Staff cancellation uses the same function/accounting; a fee waiver requires a reason and is
-logged. Tests: forfeiture nets zero; original ₹6,000 still visible after reversal; second
-cancel raises on the unique index; refundable cancel frees the bed before the refund resolves;
-`refund.failed` surfaces; no-show == late-cancel accounting.
+`cancel_reservation_with_policy()` runs it in **one transaction** (row-locked eligibility from the
+**snapshot**, not the live policy; reversal; fee or refund row; allocation release; audit). The
+Razorpay refund HTTP call happens **outside** that transaction (the route, via Phase 4's
+`initiateRefund`+`attach_refund_provider`). **Inventory releases immediately; money settles
+asynchronously.** A **terminal-status trigger** makes `cancelled`/`checked_out`/`no_show` immutable,
+so a concurrent unguarded check-in cannot overwrite a cancellation (DB-level, not check-then-act);
+the cancel/no-show functions also lock `FOR UPDATE`. `stays_mark_no_show` gains the same forfeiture
+accounting for deposit-bearing bookings (redefined in `0042`; `0020` untouched); a no-deposit no-show
+keeps its old behaviour. Guest cancel at `/booking/[code]` requires code **and** phone, is
+rate-limited, and shows the server-computed refund/forfeiture before confirming (the client sends no
+amounts). Staff cancel uses the same primitive (`stays_cancel`, role-gated); a fee waiver requires a
+reason and is audited. `confirm_hold`, `0040`, `0041`, `payments` structure, `payments.status`, the
+exclusion constraint, `can_view_money`, and `pos_can_operate` are all untouched.
 
 ### Phase 6 — Go live *(report first, change nothing until approved)*
 Enumerate every test key/URL/assumption; checklist of what must change for live keys and what
