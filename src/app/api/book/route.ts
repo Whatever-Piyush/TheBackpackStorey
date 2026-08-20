@@ -2,23 +2,29 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nights, today } from "@/lib/dates";
-import { sendConfirmationEmail, whatsappLink } from "@/lib/booking/notify";
+import { createOrder, razorpayKeyId } from "@/lib/payments/razorpay";
 
 /**
- * POST /api/book — the public booking endpoint (ROADMAP M4).
+ * POST /api/book — the public booking endpoint (Phase 9).
  *
  * Runs on the SERVICE ROLE and is never called with the anon key from a browser:
  * `reservations` and `allocations` are deny-by-default, so the browser could not
  * write them even if it tried.
  *
- * Three protections, in order:
+ * A website booking creates a 15-minute HOLD (no folio, no room charges, no payment),
+ * computes the 20% deposit SERVER-SIDE, creates a Razorpay order for exactly that
+ * amount, and returns the Checkout parameters. It never confirms the reservation:
+ * confirmation happens only through the verified Razorpay webhook → confirm_hold().
+ *
+ * Protections, in order:
  *   1. rate limit by IP        — a booking form is a free write endpoint
  *   2. Zod validation          — nothing reaches the database unshaped
- *   3. idempotency key         — a double-click, or a retry after the connection
- *                                drops on hill internet, must not book twice
+ *   3. idempotency key         — a double-click or a retry must not book (or order) twice
  */
 
 export const dynamic = "force-dynamic";
+
+const HOLD_MINUTES = 15;
 
 const BookRequest = z.object({
   idempotencyKey: z.string().uuid(),
@@ -30,6 +36,8 @@ const BookRequest = z.object({
   phone: z.string().trim().min(6).max(24),
   email: z.string().trim().email().max(160).optional().or(z.literal("")),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
+  // The guest must accept the cancellation policy shown at checkout before paying.
+  acceptedPolicy: z.literal(true),
 });
 
 type BookRequest = z.infer<typeof BookRequest>;
@@ -176,10 +184,10 @@ export async function POST(request: Request) {
       p_lines: [{ roomTypeId: type.id, ratePlanId: null, qty: body.units }],
       p_source: "website",
       p_unit_ids: null,
-      // Inventory is pooled: the website may sell every free unit, and the
-      // Channel Manager closes them elsewhere.
       p_actor_id: null,
       p_actor_label: "Website",
+      // Website booking is a 15-minute HOLD: reserves inventory, no folio/charge/payment.
+      p_hold_minutes: HOLD_MINUTES,
     });
 
     if (error) {
@@ -191,7 +199,7 @@ export async function POST(request: Request) {
       ok: boolean;
       code?: string;
       available?: number;
-      reservation?: { id: string; code: string };
+      reservation?: { id: string; code: string; status: string; holdExpiresAt: string | null };
     };
 
     if (!result?.ok) {
@@ -220,51 +228,62 @@ export async function POST(request: Request) {
 
     const reservationId = result.reservation!.id;
     const ref = result.reservation!.code;
+    const holdExpiresAt = result.reservation!.holdExpiresAt;
 
-    // Put the room nights on a folio now, so the confirmation shows a real
-    // total and reception sees the bill before the guest arrives. Idempotent,
-    // and check-in re-runs it, so a failure here is recoverable.
-    let totalPaise = 0;
-    const { data: charges } = await db.rpc("ensure_room_charges", {
+    // ---- 4. server-side deposit (never a client amount) --------------------
+    // The 20% deposit is priced from the same rate calendar confirm_hold() will
+    // bill; NO room charges are posted while the reservation is a HOLD.
+    const { data: quote } = await db.rpc("deposit_for_reservation", {
       p_reservation_id: reservationId,
     });
-    const folioId = (charges as { folioId?: string } | null)?.folioId;
-    if (folioId) {
-      const { data: items } = await db
-        .from("folio_items")
-        .select("amount_paise")
-        .eq("folio_id", folioId);
-      totalPaise = (items ?? []).reduce(
-        (sum, i) => sum + (i.amount_paise as number),
-        0,
+    const q = quote as
+      | { ok: true; totalPaise: number; depositPaise: number; percent: number; currency: string }
+      | { ok: false; code: string }
+      | null;
+    if (!q?.ok) {
+      // The hold is left to lazy-expire; no charge, no order, no payment.
+      await release();
+      return json({ ok: false, error: "We couldn't price that stay. Please try again." }, 409);
+    }
+
+    // ---- 5. Razorpay order for EXACTLY the server-computed deposit ----------
+    const order = await createOrder(q.depositPaise, q.currency, ref);
+    if (!order.ok) {
+      // No payment, no confirmation, no charges — the hold lazy-expires.
+      await release();
+      return json(
+        { ok: false, error: "We couldn't start the payment. Please try again in a moment." },
+        502,
       );
     }
 
-    const confirmation = {
-      ref,
-      guestName: body.name,
-      email: body.email || null,
-      roomName: type.name as string,
-      units: body.units,
-      unitNoun: type.sell_mode === "per_bed" ? "bed" : "room",
-      checkIn: body.checkIn,
-      checkOut: body.checkOut,
-      nights: nightCount,
-      totalPaise,
-    };
+    // ---- 6. persist the intent (authoritative amount) + record acceptance --
+    const { error: intentError } = await db.rpc("create_payment_intent", {
+      p_reservation_id: reservationId,
+      p_order_id: order.orderId,
+      p_amount_paise: q.depositPaise,
+      p_deposit_percent: q.percent,
+      p_currency: q.currency,
+    });
+    if (intentError) {
+      await release();
+      return json({ ok: false, error: "Something went wrong. Please try again." }, 500);
+    }
 
-    // Best effort: the booking is already committed and must not be reported as
-    // failed because a mail provider is down.
-    const emailed = await sendConfirmationEmail(confirmation);
-
+    // Checkout parameters only — no secrets. keyId is the publishable key.
     const payload = {
       ok: true as const,
       ref,
-      totalPaise,
+      status: "hold" as const,
+      holdExpiresAt,
       nights: nightCount,
       units: body.units,
-      whatsapp: whatsappLink(confirmation),
-      emailed,
+      roomName: type.name as string,
+      totalPaise: q.totalPaise,
+      depositPaise: q.depositPaise,
+      remainingPaise: q.totalPaise - q.depositPaise,
+      currency: q.currency,
+      razorpay: { keyId: razorpayKeyId(), orderId: order.orderId, amountPaise: q.depositPaise },
     };
 
     await db.rpc("complete_idempotency_key", {

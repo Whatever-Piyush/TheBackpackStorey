@@ -41,6 +41,9 @@ const SERVER_ONLY = [
   "property_settings",
   "booking_idempotency",
   "rate_limit_hits",
+  "payment_intents",
+  "payment_events",
+  "refunds",
 ];
 
 let db: Client;

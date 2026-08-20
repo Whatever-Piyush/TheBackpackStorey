@@ -228,18 +228,32 @@ belongs with the Razorpay payment step in **Phase 4**. Payment state stays out o
 an expired hold's bed is bookable **without any sweep**; walk-in still confirmed; an expired hold
 cannot be confirmed; promotion posts charges exactly once and is idempotent.
 
-### Phase 4 — Razorpay, test mode only *(no refunds)*
-Verify Razorpay's **current** API against live docs before coding. `payment_intents` +
-`payment_events` (§4). Order creation server-side; amount from the reservation's stored
-`deposit_amount_paise` (Phase 2), never from the client. Webhook: read **raw** body before
-parsing, verify `X-Razorpay-Signature`, **fail closed** on unset secret, size cap + rate
-limit, write the `payment_events` row **before** business logic, dedupe on
-`provider_event_id UNIQUE`. On `payment.captured`: verify webhook amount == stored deposit,
-then promote `hold → confirmed`, post the payment to the folio, log an event; reject a mismatch
-loudly. Checkout UI shows three lines (total / pay now / pay at property) + policy acceptance +
-actual deadline. Tests: double delivery → one payment row; bad signature rejected; unset secret
-fails closed; amount mismatch rejected; abandoned checkout leaves the hold to expire; confirmed
-folio balance == charges − deposit.
+### Phase 4 — Razorpay deposit + hold confirmation *(implemented)*
+Tables `payment_intents`, `payment_events` (dedupe ledger, `unique(provider, event id)`), and
+`refunds` (`0041`); **no** `payments.status`, no new `reservations.status`. No SDK —
+`src/lib/payments/razorpay.ts` uses `fetch` + `node:crypto`. Secrets are server-only:
+`RAZORPAY_KEY_ID` (publishable) is returned in the `/api/book` response, `RAZORPAY_KEY_SECRET`
+and `RAZORPAY_WEBHOOK_SECRET` never leave the server.
+
+**Amount authority (decision B).** `/api/book` creates the 15-min hold, then `deposit_for_reservation`
+prices the stay from the same rate calendar `confirm_hold` will bill and applies the active
+`deposit_config` %; that amount is stored on `payment_intents.amount_paise` and is *exactly* the
+Razorpay order amount. `confirm_hold` still snapshots `reservations.deposit_amount_paise` at
+promotion — Phase 3 is unchanged; `confirm_hold` is not modified.
+
+**Webhook is the source of truth** (`/api/payments/razorpay/webhook`): size cap → DB rate limit →
+raw body → verify `X-Razorpay-Signature` (**fail closed** on unset secret) → parse. `apply_razorpay_capture`
+writes the `payment_events` row (the dedupe boundary) first, verifies order/amount/currency against
+the stored intent, then delegates to **`confirm_paid_hold`** (the Phase-4 wrapper: valid/revive-if-still-held
+→ `confirm_hold`; cancelled/reclaimed → `INVENTORY_LOST`). On confirm it posts the deposit to the folio
+once (payments `unique(reference)` for razorpay); folio arithmetic is unchanged. The browser Checkout
+callback is UX only ("Payment received — confirming").
+
+**INVENTORY_LOST + refunds.** If the paid hold was reclaimed, the capture records the deposit and opens a
+`refunds` row (`requested`); the route calls Razorpay's refund API and moves it to `processing`. A refund
+API 200 is **not** completion — only the `refund.processed` webhook posts the single **negative** folio
+payment (`apply_razorpay_refund_result`); `refund.failed` stays visible in `refunds`. Duplicate capture or
+refund events are inert (event + reference uniqueness).
 
 ### Phase 5 — Cancellation, refunds, forfeiture accounting
 **Refundable (before cutoff):** reverse room charges with negative lines; `cancelled`/`guest`;

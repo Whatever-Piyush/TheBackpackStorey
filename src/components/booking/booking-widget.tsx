@@ -2,34 +2,64 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, MessageCircle } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
 import { formatPaise } from "@/lib/money";
 import { nights as nightsBetween } from "@/lib/dates";
 import type { NightAvailability } from "@/lib/booking/availability";
 
 /**
- * Booking widget (ROADMAP M3 item 3).
+ * Booking widget (Phase 9).
  *
- * Room type first, because availability is per type and a calendar is
- * meaningless without one. Unavailable nights cannot be picked at all rather
- * than being rejected after the fact, and the quote is the sum of the actual
- * nightly rates — the same rows the folio will bill from.
- *
- * Beds and occupancy are separate ideas: a dorm sells beds, a private room
- * sells the room. The old single "Guests" spinner conflated them.
+ * A website booking is a 15-minute HOLD confirmed by a 20% Razorpay deposit. The
+ * server computes the deposit and creates the order; the browser only opens Razorpay
+ * Checkout and shows progress. The Checkout callback is UX only — the reservation is
+ * confirmed by the verified webhook, never by the browser, so this widget never says
+ * "Booked" on a callback; it says "confirming".
  */
 
 export type BookableType = {
   code: string;
   name: string;
   isDorm: boolean;
-  /** Most units one booking may take — the direct allotment caps this anyway. */
   maxUnits: number;
   nights: NightAvailability[];
 };
 
 type Step = "dates" | "details" | "done";
+
+/** Display-only estimate; the server is authoritative for the charged amount. */
+const DEPOSIT_PCT = 0.2;
+
+type RazorpayResponse = { razorpay_payment_id: string; razorpay_order_id: string };
+type RazorpayOptions = {
+  key: string;
+  order_id: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  handler: (r: RazorpayResponse) => void;
+  prefill?: { name?: string; contact?: string; email?: string };
+  theme?: { color?: string };
+  modal?: { ondismiss?: () => void };
+};
+declare global {
+  interface Window {
+    Razorpay?: new (o: RazorpayOptions) => { open: () => void };
+  }
+}
+
+function loadRazorpay(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
 
 const field =
   "w-full rounded-xl border hairline bg-pine px-3.5 py-2.5 text-paper outline-none focus:border-amber";
@@ -50,21 +80,12 @@ export function BookingWidget({
   const [units, setUnits] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [taken, setTaken] = useState<NightAvailability[] | null>(null);
-  const [done, setDone] = useState<{
-    ref: string;
-    totalPaise: number;
-    whatsapp: string;
-    emailed: boolean;
-  } | null>(null);
+  const [accepted, setAccepted] = useState(false);
+  // Set only after a payment callback — the reservation is still being confirmed
+  // server-side by the webhook, so this is deliberately NOT a "booked" state.
+  const [outcome, setOutcome] = useState<{ ref: string } | null>(null);
 
-  /**
-   * Stable across retries so a double-click, or a re-submit after the
-   * connection drops, is the SAME booking to the server. Regenerated only once
-   * a booking has actually been made.
-   */
-  const [idempotencyKey, setIdempotencyKey] = useState<string>(() =>
-    crypto.randomUUID(),
-  );
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => crypto.randomUUID());
 
   const type = types.find((t) => t.code === typeCode) ?? types[0];
 
@@ -73,29 +94,27 @@ export function BookingWidget({
     [type],
   );
 
-  /** Nightly breakdown for the chosen range, straight from the rate calendar. */
   const quote = useMemo(() => {
     if (!checkIn || !checkOut) return null;
     const count = nightsBetween(checkIn, checkOut);
     if (count < 1) return null;
-
     const lines: { date: string; pricePaise: number }[] = [];
     const cursor = new Date(`${checkIn}T00:00:00Z`);
     for (let i = 0; i < count; i += 1) {
       const iso = cursor.toISOString().slice(0, 10);
       const night = byDate.get(iso);
-      // A gap or a full night means we can't price this stay — refuse to guess.
       if (!night || night.pricePaise === null || night.free < units) return null;
       lines.push({ date: iso, pricePaise: night.pricePaise });
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
     const perUnit = lines.reduce((s, l) => s + l.pricePaise, 0);
-    return { lines, nights: count, perUnit, total: perUnit * units };
+    const total = perUnit * units;
+    const deposit = Math.round(total * DEPOSIT_PCT);
+    return { lines, nights: count, perUnit, total, deposit, remaining: total - deposit };
   }, [checkIn, checkOut, byDate, units]);
 
   function pick(date: string) {
     setError(null);
-    // First click sets arrival; the next sets departure, unless it's earlier.
     if (!checkIn || checkOut || date <= checkIn) {
       setCheckIn(date);
       setCheckOut(null);
@@ -121,38 +140,26 @@ export function BookingWidget({
     );
   }
 
-  if (step === "done" && done) {
+  if (step === "done" && outcome) {
     return (
       <div className="rounded-card border hairline bg-forest/40 p-6 text-center sm:p-10">
         <Check size={28} className="mx-auto text-amber" aria-hidden />
         <h2 className="mt-4 font-display text-2xl font-extrabold text-paper">
-          You&apos;re booked
+          Payment received
         </h2>
         <p className="font-data mt-2 text-sm uppercase tracking-[0.16em] text-amber">
-          {done.ref}
+          {outcome.ref}
         </p>
         <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-sage">
-          {formatPaise(done.totalPaise)} to pay when you arrive. Keep that
-          reference — it&apos;s how we find your booking.
+          We&apos;re confirming your booking now — this takes a moment. Keep that
+          reference, and check its status any time.
         </p>
-        {done.emailed && (
-          <p className="mt-2 text-xs text-sage/70">A copy is on its way to your email.</p>
-        )}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <a
-            href={done.whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-medium text-pine transition-colors hover:bg-amber/90"
-          >
-            <MessageCircle size={16} aria-hidden />
-            Confirm on WhatsApp
-          </a>
           <Link
-            href={`/booking/${done.ref}`}
-            className="rounded-full border hairline px-5 py-2.5 text-sm text-paper transition-colors hover:border-amber hover:text-amber"
+            href={`/booking/${outcome.ref}`}
+            className="rounded-full bg-amber px-5 py-2.5 text-sm font-medium text-pine transition-colors hover:bg-amber/90"
           >
-            View booking
+            View booking status
           </Link>
         </div>
       </div>
@@ -161,7 +168,6 @@ export function BookingWidget({
 
   return (
     <div className="space-y-6">
-      {/* Always visible: the room is never hidden just because dates are full. */}
       <div>
         <p className={labelCls}>Room</p>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -214,11 +220,7 @@ export function BookingWidget({
 
           <div>
             <p className={labelCls}>
-              {!checkIn
-                ? "Pick your arrival"
-                : !checkOut
-                  ? "Pick your departure"
-                  : "Your dates"}
+              {!checkIn ? "Pick your arrival" : !checkOut ? "Pick your departure" : "Your dates"}
             </p>
             <div className="mt-2 max-w-md">
               <AvailabilityCalendar
@@ -263,9 +265,6 @@ export function BookingWidget({
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-xs text-sage/70">
-                Pay when you arrive. No card needed now.
-              </p>
             </div>
           )}
 
@@ -300,7 +299,14 @@ export function BookingWidget({
             e.preventDefault();
             setError(null);
             setTaken(null);
+            if (!accepted) {
+              setError("Please accept the cancellation policy to continue.");
+              return;
+            }
             const data = new FormData(e.currentTarget);
+            const name = String(data.get("name") ?? "");
+            const phone = String(data.get("phone") ?? "");
+            const email = String(data.get("email") ?? "");
             start(async () => {
               let result: {
                 ok: boolean;
@@ -308,9 +314,8 @@ export function BookingWidget({
                 code?: string;
                 availability?: { nights: NightAvailability[] };
                 ref?: string;
-                totalPaise?: number;
-                whatsapp?: string;
-                emailed?: boolean;
+                currency?: string;
+                razorpay?: { keyId: string; orderId: string; amountPaise: number };
               };
               try {
                 const response = await fetch("/api/book", {
@@ -322,23 +327,22 @@ export function BookingWidget({
                     checkIn,
                     checkOut,
                     units,
-                    name: String(data.get("name") ?? ""),
-                    phone: String(data.get("phone") ?? ""),
-                    email: String(data.get("email") ?? ""),
+                    name,
+                    phone,
+                    email,
                     notes: String(data.get("notes") ?? ""),
+                    acceptedPolicy: true,
                   }),
                 });
                 result = await response.json();
               } catch {
-                // Never a stack trace: the booking may or may not have landed,
-                // and the idempotency key makes retrying safe either way.
                 setError(
-                  "We couldn't reach the server. Check your connection and press Book again — it won't book you twice.",
+                  "We couldn't reach the server. Check your connection and press Pay again — it won't book you twice.",
                 );
                 return;
               }
 
-              if (!result.ok) {
+              if (!result.ok || !result.razorpay) {
                 setError(result.error ?? "Something went wrong.");
                 if (result.code === "UNITS_TAKEN") {
                   setTaken(result.availability?.nights ?? []);
@@ -346,16 +350,36 @@ export function BookingWidget({
                 }
                 return;
               }
-              setDone({
-                ref: result.ref!,
-                totalPaise: result.totalPaise ?? 0,
-                whatsapp: result.whatsapp!,
-                emailed: result.emailed ?? false,
+
+              const loaded = await loadRazorpay();
+              if (!loaded || !window.Razorpay) {
+                setError("We couldn't open the payment window. Please try again.");
+                return;
+              }
+              const rzp = result.razorpay;
+              const checkout = new window.Razorpay({
+                key: rzp.keyId,
+                order_id: rzp.orderId,
+                amount: rzp.amountPaise,
+                currency: result.currency ?? "INR",
+                name: "Backpackers Storey",
+                description: `Deposit · booking ${result.ref}`,
+                prefill: { name, contact: phone, email: email || undefined },
+                theme: { color: "#eaa53f" },
+                // UX ONLY. The webhook confirms the booking; this just moves the UI on.
+                handler: () => {
+                  setOutcome({ ref: result.ref! });
+                  setIdempotencyKey(crypto.randomUUID());
+                  setStep("done");
+                },
+                modal: {
+                  ondismiss: () =>
+                    setError(
+                      "Payment cancelled — your hold is open for a few more minutes if you'd like to try again.",
+                    ),
+                },
               });
-              // Rotate only once a booking actually landed, so every retry of
-              // THIS booking reuses the key and can never double-book.
-              setIdempotencyKey(crypto.randomUUID());
-              setStep("done");
+              checkout.open();
             });
           }}
         >
@@ -369,9 +393,24 @@ export function BookingWidget({
 
           <p className="text-sm text-sage">
             {type.name} · {units} {type.isDorm ? "bed" : "room"}
-            {units === 1 ? "" : "s"} · {checkIn} → {checkOut} ·{" "}
-            <span className="text-paper">{formatPaise(quote.total)}</span>
+            {units === 1 ? "" : "s"} · {checkIn} → {checkOut}
           </p>
+
+          {/* What's paid now vs at the property. */}
+          <div className="rounded-card border hairline bg-forest/40 p-4 text-sm">
+            <div className="flex justify-between text-sage">
+              <span>Total for your stay</span>
+              <span className="tabular-nums text-paper">{formatPaise(quote.total)}</span>
+            </div>
+            <div className="mt-2 flex justify-between font-medium text-paper">
+              <span>Pay now (deposit, 20%)</span>
+              <span className="tabular-nums text-amber">{formatPaise(quote.deposit)}</span>
+            </div>
+            <div className="mt-2 flex justify-between text-sage">
+              <span>Pay at the property (cash / UPI)</span>
+              <span className="tabular-nums">{formatPaise(quote.remaining)}</span>
+            </div>
+          </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -400,14 +439,30 @@ export function BookingWidget({
             <textarea id="notes" name="notes" rows={2} className={`mt-1.5 ${field}`} />
           </div>
 
+          <label className="flex items-start gap-2.5 text-sm text-sage">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-amber"
+            />
+            <span>
+              I&apos;ve read and accept the{" "}
+              <Link href="/policies/cancellation" target="_blank" className="text-amber underline">
+                cancellation policy
+              </Link>
+              , and understand the 20% deposit is charged now.
+            </span>
+          </label>
+
           {error && <p className="text-sm text-amber">{error}</p>}
 
           <button
             type="submit"
-            disabled={pending}
-            className="w-full rounded-full bg-amber px-5 py-3 text-sm font-medium text-pine transition-colors hover:bg-amber/90 disabled:opacity-50"
+            disabled={pending || !accepted}
+            className="w-full rounded-full bg-amber px-5 py-3 text-sm font-medium text-pine transition-colors hover:bg-amber/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {pending ? "Booking…" : `Book · ${formatPaise(quote.total)}`}
+            {pending ? "Starting payment…" : `Pay deposit · ${formatPaise(quote.deposit)}`}
           </button>
         </form>
       )}
