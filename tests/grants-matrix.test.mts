@@ -136,6 +136,17 @@ describe("anon — the public website", () => {
       }
     });
   });
+
+  it("cannot execute the money predicate or the takings RPC", async () => {
+    // Phase 9: every money-bearing function is revoked from anon. Hiding a nav link
+    // is not access control — a bare session (or the publishable key) can hit
+    // /rest/v1/rpc/ directly, so the grant is the boundary.
+    await as("anon", null, async () => {
+      for (const call of ["select can_view_money()", "select pos_today()"]) {
+        await assert.rejects(() => db.query(call), /permission denied/, call);
+      }
+    });
+  });
 });
 
 describe("authenticated, but not staff", () => {

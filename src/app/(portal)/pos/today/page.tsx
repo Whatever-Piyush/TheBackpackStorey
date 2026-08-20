@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Lock } from "lucide-react";
-import { requireRole } from "@/lib/auth";
+import { requireCanViewMoney } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatPaise } from "@/lib/money";
 import { CloseDayButton } from "@/components/pos/close-day";
@@ -37,8 +37,10 @@ export default async function TodayPage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  // The roadmap scopes this screen to the owner: it's the day's takings.
-  await requireRole(["owner"]);
+  // Aggregate takings are visible to the money-visible roles (owner + manager),
+  // matching the database gate can_view_money(). Managers were previously locked
+  // out of the one revenue screen even though pos_today() already admitted them.
+  await requireCanViewMoney();
   const { date } = await searchParams;
 
   let day: DayReport;

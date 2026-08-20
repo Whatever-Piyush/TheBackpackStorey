@@ -6,6 +6,19 @@ export type Role = "owner" | "manager" | "reception" | "kitchen" | "housekeeping
 
 export const ALL_ROLES: Role[] = ["owner", "manager", "reception", "kitchen", "housekeeping"];
 
+/**
+ * Roles that may see AGGREGATE financial information (revenue, by-method splits,
+ * day totals). The UI mirror of the database predicate `public.can_view_money()` —
+ * kept in one place so no page hard-codes its own `["owner","manager"]` literal.
+ * The database function is the real gate (money RPCs RAISE for everyone else); this
+ * is defence-in-depth so a refused user never renders the screen in the first place.
+ */
+export const MONEY_ROLES: Role[] = ["owner", "manager"];
+
+export function canViewMoney(role: Role | null): boolean {
+  return role === "owner" || role === "manager";
+}
+
 export type SessionProfile = {
   userId: string;
   email?: string;
@@ -75,4 +88,12 @@ export async function requireRole(allowed: Role[]): Promise<SessionProfile> {
     redirect(roleHome(session.role));
   }
   return session;
+}
+
+/**
+ * Require a money-visible role (owner/manager), mirroring `public.can_view_money()`.
+ * Use this for aggregate-money screens rather than a duplicated role literal.
+ */
+export async function requireCanViewMoney(): Promise<SessionProfile> {
+  return requireRole(MONEY_ROLES);
 }
