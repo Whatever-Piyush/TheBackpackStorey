@@ -298,6 +298,11 @@ describe("create_channel_reservation authorization", () => {
 
   after(async () => {
     await db.query(`reset role`);
+    // Own the fixtures fully: the guard's owner profile has no staff row, and a
+    // leaked role-bearing profile trips grants-matrix's isolation invariant. Only
+    // orders/housekeeping FK-reference profiles and neither is created here, so
+    // deleting the profile before the business rows below is safe.
+    await db.query(`delete from profiles where id = $1`, [OWNER]);
     for (const sql of [
       `delete from payments where folio_id in (select f.id from folios f
          join reservations r on r.id = f.reservation_id

@@ -119,6 +119,10 @@ after(async () => {
   await db.query(`delete from beds where room_id in (select id from rooms where room_type_id = $1)`, [typeId]);
   await db.query(`delete from rooms where room_type_id = $1`, [typeId]);
   await db.query(`delete from room_types where id = $1`, [typeId]);
+  // Own the fixtures fully: the DESK profile has a role but no staff row, and a
+  // leaked one trips grants-matrix's whole-table isolation invariant. (GHOST is
+  // deliberately profile-less, so it never leaks.)
+  await db.query(`delete from profiles where id = $1`, [DESK]);
   await db.end();
 });
 

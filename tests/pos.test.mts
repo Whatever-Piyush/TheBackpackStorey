@@ -117,6 +117,10 @@ after(async () => {
   );
   await db.query(`delete from guests where name like $1`, [mine]);
 
+  // Own the fixtures fully: this owner profile has no staff row, and a leaked one
+  // trips grants-matrix's whole-table isolation invariant. Orders (which reference
+  // it via created_by) are already deleted above, so this is FK-safe.
+  await db.query(`delete from profiles where id = $1`, [OWNER]);
   await db.end();
 });
 
