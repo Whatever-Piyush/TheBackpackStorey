@@ -105,7 +105,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
   // Provider refund happens OUTSIDE the (already-committed) DB transaction. A failure
   // here leaves the refunds row visible/retryable; it never blocks the cancellation.
   if (result.refundable && result.refundId && result.paymentId && (result.refundPaise ?? 0) > 0) {
-    const refund = await initiateRefund(result.paymentId, result.refundPaise!);
+    // Carry OUR refunds.id to Razorpay as the receipt (its per-payment idempotency
+    // key) and in notes — so a lost response is recoverable and a retry can never
+    // create a second refund. A DUPLICATE_RECEIPT / failure just leaves the row for
+    // reconciliation; it never blocks the (already-committed) cancellation.
+    const refund = await initiateRefund(result.paymentId, result.refundPaise!, {
+      receipt: result.refundId,
+      notes: { refund_id: result.refundId },
+    });
     if (refund.ok) {
       await db.rpc("attach_refund_provider", {
         p_refund_id: result.refundId,

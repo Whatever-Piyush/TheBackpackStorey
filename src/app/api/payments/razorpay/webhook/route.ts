@@ -83,7 +83,13 @@ export async function POST(request: Request) {
       // INVENTORY_LOST: the refund row is already open; ask Razorpay to refund, then
       // record the provider refund id. Best-effort — a failure leaves the row visible.
       if (result?.code === "INVENTORY_LOST" && result.refundId) {
-        const refund = await initiateRefund(p.id, result.amountPaise ?? p.amount ?? 0);
+        // Same correlation as the guest path: receipt = our refunds.id (provider
+        // idempotency) + notes.refund_id (self-heal). A failure here leaves the row
+        // 'requested' for reconciliation — never a blind second refund.
+        const refund = await initiateRefund(p.id, result.amountPaise ?? p.amount ?? 0, {
+          receipt: result.refundId,
+          notes: { refund_id: result.refundId },
+        });
         if (refund.ok) {
           await db.rpc("attach_refund_provider", {
             p_refund_id: result.refundId,

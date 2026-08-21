@@ -65,26 +65,91 @@ export async function createOrder(
 
 export type RefundResult =
   | { ok: true; refundId: string; status: string }
-  | { ok: false; code: "REFUND_FAILED" };
+  // DUPLICATE_RECEIPT: Razorpay rejected the receipt because a refund with this
+  // receipt already exists for this payment — the request was NOT a new refund, so
+  // the caller must reconcile (fetch + attach), never treat it as a plain failure.
+  | { ok: false; code: "REFUND_FAILED" | "DUPLICATE_RECEIPT" };
+
+/** Correlation carried to Razorpay so a lost response is always recoverable. */
+export type RefundCorrelation = {
+  /** Razorpay `receipt` — its per-payment idempotency key (reuse ⇒ 400 duplicate). */
+  receipt?: string;
+  /** Razorpay `notes` — echoed back on the entity + webhook; used for self-heal. */
+  notes?: Record<string, string>;
+};
 
 /**
  * Ask Razorpay to refund `amountPaise` of a captured payment. A 200 here means the
- * refund was ACCEPTED, not completed — completion arrives later as a refund webhook,
- * which is the only thing that posts the negative folio payment.
+ * refund was ACCEPTED, not completed — completion arrives later as a refund webhook
+ * (or is discovered by reconciliation), which is the only thing that posts the
+ * negative folio payment.
+ *
+ * `receipt` is Razorpay's per-payment idempotency key: reusing it for the same
+ * payment returns HTTP 400 "Duplicate receipt found for this refund request", which
+ * we surface as DUPLICATE_RECEIPT so a retry can never create a second refund.
  */
-export async function initiateRefund(paymentId: string, amountPaise: number): Promise<RefundResult> {
+export async function initiateRefund(
+  paymentId: string,
+  amountPaise: number,
+  correlation: RefundCorrelation = {},
+): Promise<RefundResult> {
   if (!keyId() || !keySecret()) return { ok: false, code: "REFUND_FAILED" };
   try {
+    const body: Record<string, unknown> = { amount: amountPaise, speed: "normal" };
+    if (correlation.receipt) body.receipt = correlation.receipt;
+    if (correlation.notes) body.notes = correlation.notes;
     const res = await fetch(`${API}/payments/${encodeURIComponent(paymentId)}/refund`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: basicAuth() },
-      body: JSON.stringify({ amount: amountPaise, speed: "normal" }),
+      body: JSON.stringify(body),
     });
-    if (!res.ok) return { ok: false, code: "REFUND_FAILED" };
+    if (!res.ok) {
+      // A duplicate-receipt 400 means Razorpay already has our refund — signal the
+      // caller to reconcile rather than resubmit.
+      const err = (await res.json().catch(() => null)) as
+        | { error?: { description?: string } }
+        | null;
+      if (res.status === 400 && /receipt/i.test(err?.error?.description ?? "")) {
+        return { ok: false, code: "DUPLICATE_RECEIPT" };
+      }
+      return { ok: false, code: "REFUND_FAILED" };
+    }
     const data = (await res.json()) as { id: string; status: string };
     if (!data?.id) return { ok: false, code: "REFUND_FAILED" };
     return { ok: true, refundId: data.id, status: data.status };
   } catch {
     return { ok: false, code: "REFUND_FAILED" };
+  }
+}
+
+export type ProviderRefund = {
+  id: string;
+  status: string; // 'pending' | 'processed' | 'failed'
+  amount: number;
+  receipt: string | null;
+  notes: Record<string, string> | null;
+};
+export type ListRefundsResult =
+  | { ok: true; refunds: ProviderRefund[] }
+  | { ok: false; code: "LOOKUP_FAILED" };
+
+/**
+ * Fetch the refunds Razorpay holds for a payment (last 100). Reconciliation uses
+ * this to discover whether OUR refund already exists — matched on `receipt` /
+ * `notes.refund_id` (= our refunds.id) — so it can attach and settle it without ever
+ * submitting a second refund. Read-only; never moves money.
+ */
+export async function listPaymentRefunds(paymentId: string): Promise<ListRefundsResult> {
+  if (!keyId() || !keySecret()) return { ok: false, code: "LOOKUP_FAILED" };
+  try {
+    const res = await fetch(
+      `${API}/payments/${encodeURIComponent(paymentId)}/refunds?count=100`,
+      { headers: { Authorization: basicAuth() } },
+    );
+    if (!res.ok) return { ok: false, code: "LOOKUP_FAILED" };
+    const data = (await res.json()) as { items?: ProviderRefund[] };
+    return { ok: true, refunds: Array.isArray(data?.items) ? data.items : [] };
+  } catch {
+    return { ok: false, code: "LOOKUP_FAILED" };
   }
 }

@@ -289,6 +289,38 @@ amounts). Staff cancel uses the same primitive (`stays_cancel`, role-gated); a f
 reason and is audited. `confirm_hold`, `0040`, `0041`, `payments` structure, `payments.status`, the
 exclusion constraint, `can_view_money`, and `pos_can_operate` are all untouched.
 
+### Step 5B — Refund reconciliation *(implemented)*
+The refund HTTP call lives outside the DB transaction, so it can fail or (worse) *succeed
+with a lost response* — leaving a `refunds` row stuck `requested` with a NULL
+`provider_refund_id` while money moved at Razorpay. `0043` closes this **additively** (two
+operational columns `attempts`, `last_reconciled_at`; no accounting change).
+
+**Provider correlation.** Every initiated refund now carries **our `refunds.id`** as the
+Razorpay `receipt` *and* `notes.refund_id`. `receipt` is Razorpay's **per-payment idempotency
+key** (verified: reusing it returns HTTP 400 *"Duplicate receipt found for this refund
+request"*), so a resubmit can never create a second refund; `notes` is echoed on the entity and
+the webhook, giving deterministic correlation.
+
+**Webhook self-heal** (`apply_razorpay_refund_result`, redefined in `0043`). When a
+`refund.processed` arrives whose `provider_refund_id` matches no local row (the lost-response
+case), it correlates on `notes.refund_id` — **only** for an open row, unbound (or bound to this
+same id), with a **matching amount** — attaches, and settles. Any mismatch stays observable
+(`REFUND_NOT_FOUND`); it never guesses.
+
+**Reconciler.** `POST /api/payments/razorpay/reconcile` — server-only, gated by a dedicated
+`REFUND_RECONCILE_SECRET` (fail-closed), method-restricted, rate-limited, **bounded batch**,
+driven by cron like `/api/channel/sync` (no pg_cron, no worker). `claim_refunds_for_reconcile`
+leases open (`requested`/`processing`) rows with **`FOR UPDATE SKIP LOCKED`** (concurrent runs
+take disjoint work) and stamps `last_reconciled_at` (spacing). Per row it asks Razorpay
+(`GET /payments/:id/refunds`) for **our** refund (matched by receipt / `notes.refund_id`): if
+found → attach, and on a provider-confirmed `processed`/`failed` drive the existing lifecycle;
+if genuinely absent and still `requested` → submit exactly one (same correlation); anything
+ambiguous is left for the next pass. **Money rule preserved:** the negative payment is posted
+only on a **provider-confirmed** `processed` state (webhook or authenticated fetch) — never on an
+API 200 — and `refunds.provider_refund_id` / `payment_events` / `payments(reference)` UNIQUE keep
+every effect exactly-once. `0040`–`0042` accounting, `confirm_hold`, `payments` structure, and
+the Phase-4 amount invariant are untouched.
+
 ### Phase 6 — Go live *(report first, change nothing until approved)*
 Enumerate every test key/URL/assumption; checklist of what must change for live keys and what
 **cannot** be tested in test mode; confirm webhook registered for exactly the handled events
