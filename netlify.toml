@@ -1,0 +1,11 @@
+# Backpackers Storey — portfolio site (Next.js 16, App Router).
+# Netlify detects Next.js and provisions its OpenNext-based adapter automatically;
+# nothing to install or pin here. Values in this file override the dashboard,
+# so the dashboard build settings are left at their defaults.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Node major the build is verified on locally (v24.x); Next 16 requires >= 20.9.
+  NODE_VERSION = "24"
