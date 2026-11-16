@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Instrument_Sans, Space_Mono, Zeyada } from "next/font/google";
 import "./globals.css";
-import { SITE } from "@/lib/site";
+import { PHOTOS, SITE } from "@/lib/site";
 
 // §2 type system: display / body / mono
 const display = Bricolage_Grotesque({
@@ -46,8 +46,11 @@ export const metadata: Metadata = {
     title: `${SITE.name} — ${SITE.tagline}`,
     description: SITE.description,
     locale: "en_IN",
+    // Link previews (WhatsApp, Instagram DMs, search): the property's own photo,
+    // cropped to 1200×630 at public/og.jpg.
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: PHOTOS.heroCafe.alt }],
   },
-  twitter: { card: "summary_large_image" },
+  twitter: { card: "summary_large_image", images: ["/og.jpg"] },
 };
 
 export default function RootLayout({

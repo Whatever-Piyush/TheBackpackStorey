@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Check } from "lucide-react";
+import { BOOKING_PAUSED } from "@/lib/launch";
 import { getRoom, ROOMS, SITE } from "@/lib/site";
 import { BookingButton } from "@/components/booking-button";
 import { ElevationTag } from "@/components/elevation-tag";
@@ -29,6 +30,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title: room.name,
     description: room.short,
+    alternates: { canonical: `/rooms/${room.slug}` },
   };
 }
 
@@ -42,8 +44,9 @@ export default async function RoomDetailPage({ params }: Params) {
 
   // The room ALWAYS renders. Availability is additive: if the database is
   // unreachable, or Supabase isn't configured, the page still sells the room and
-  // simply doesn't show a calendar.
-  const roomTypeId = await roomTypeIdForCode(room.slug);
+  // simply doesn't show a calendar. While booking is paused there is no lookup
+  // at all — the page is pure content plus the WhatsApp enquiry CTA.
+  const roomTypeId = BOOKING_PAUSED ? null : await roomTypeIdForCode(room.slug);
   const availability = roomTypeId
     ? await getAvailability(roomTypeId, today(), addDays(today(), 365))
     : null;
@@ -104,21 +107,23 @@ export default async function RoomDetailPage({ params }: Params) {
         </div>
       </div>
 
-      <section className="mt-14">
-        <h2 className="font-display text-2xl font-extrabold tracking-tight text-paper">
-          When you can stay
-        </h2>
-        <p className="mt-1.5 text-sm text-sage">
-          Twelve months ahead. Green nights are open — pick your dates on the
-          booking page.
-        </p>
-        <div className="mt-4 max-w-md">
-          <AvailabilityCalendar
-            nights={availability?.nights ?? []}
-            unitNoun={room.isDorm ? "bed" : "room"}
-          />
-        </div>
-      </section>
+      {BOOKING_PAUSED ? null : (
+        <section className="mt-14">
+          <h2 className="font-display text-2xl font-extrabold tracking-tight text-paper">
+            When you can stay
+          </h2>
+          <p className="mt-1.5 text-sm text-sage">
+            Twelve months ahead. Green nights are open — pick your dates on the
+            booking page.
+          </p>
+          <div className="mt-4 max-w-md">
+            <AvailabilityCalendar
+              nights={availability?.nights ?? []}
+              unitNoun={room.isDorm ? "bed" : "room"}
+            />
+          </div>
+        </section>
+      )}
 
       {rest.length > 0 ? (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">

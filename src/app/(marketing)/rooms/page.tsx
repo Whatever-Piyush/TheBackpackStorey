@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BOOKING_PAUSED } from "@/lib/launch";
 import { ROOMS, SITE } from "@/lib/site";
 import { BookingButton } from "@/components/booking-button";
 import { ElevationTag } from "@/components/elevation-tag";
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
   title: "Rooms & Dorm",
   description:
     "A six-bed dormitory and a handful of private rooms at Backpackers Storey, Bir — pick the bed that fits the trip.",
+  alternates: { canonical: "/rooms" },
 };
 
 export default function RoomsPage() {
@@ -20,7 +22,10 @@ export default function RoomsPage() {
       </h1>
       <p className="mt-4 max-w-xl text-base leading-relaxed text-sage">
         One social dorm and a few quiet private rooms, all a short climb from the
-        rooftop café. Rates and live availability open on the booking page.
+        rooftop café.{" "}
+        {BOOKING_PAUSED
+          ? "Message us on WhatsApp for rates and availability."
+          : "Rates and live availability open on the booking page."}
       </p>
 
       <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

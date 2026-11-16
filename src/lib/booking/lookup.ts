@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { BOOKING_PAUSED } from "@/lib/launch";
 import { formatPaise } from "@/lib/money";
 
 /**
@@ -37,6 +38,11 @@ export async function lookupBooking(
   _prev: LookupResult | null,
   formData: FormData,
 ): Promise<LookupResult> {
+  // Paused for the portfolio launch: no lookups, no admin client.
+  if (BOOKING_PAUSED) {
+    return { ok: false, error: "Online booking is paused. Please WhatsApp or call us." };
+  }
+
   const code = String(formData.get("code") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
 

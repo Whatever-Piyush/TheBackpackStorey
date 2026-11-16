@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { MapPin, MessageCircle, Navigation, Phone } from "lucide-react";
-import { GETTING_HERE, MAPS, NAV, SITE } from "@/lib/site";
+import { GETTING_HERE, MAPS, NAV, SITE, whatsappEnquiryLink } from "@/lib/site";
 import { BookingButton } from "@/components/booking-button";
-import { Reveal } from "@/components/reveal";
+import { Reveal } from "@/components/motion/reveal";
 
 const digits = (s: string) => s.replace(/[^\d]/g, "");
 
-const waLink = `https://wa.me/${digits(SITE.whatsapp)}?text=${encodeURIComponent(
-  "Hi Backpackers Storey! I'd like to ask about a booking.",
-)}`;
+// One source of truth for the WhatsApp deep link (shared with the paused booking CTA).
+const waLink = whatsappEnquiryLink();
 
 export function SiteFooter() {
   return (

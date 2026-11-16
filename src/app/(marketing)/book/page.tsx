@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { ElevationTag } from "@/components/elevation-tag";
 import { BookingWidget, type BookableType } from "@/components/booking/booking-widget";
 import { getAvailability, roomTypeIdForCode } from "@/lib/booking/availability";
 import { addDays, today } from "@/lib/dates";
+import { BOOKING_PAUSED } from "@/lib/launch";
 import { ROOMS, SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -28,6 +30,10 @@ export default async function BookPage({
 }: {
   searchParams: Promise<{ type?: string }>;
 }) {
+  // Paused for the portfolio launch: guests go to the contact section instead.
+  // Temporary redirect on purpose — this comes back when BOOKING_PAUSED is off.
+  if (BOOKING_PAUSED) redirect("/#visit");
+
   const { type } = await searchParams;
 
   const from = today();

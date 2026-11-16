@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { BOOKING_PAUSED } from "@/lib/launch";
 import { ROOMS } from "@/lib/site";
 import { ElevationTag } from "@/components/elevation-tag";
 import { GradientShimmer } from "@/components/motion/gradient-shimmer";
@@ -22,7 +23,9 @@ export function RoomsShowcase() {
           </Link>
         </div>
         <p className="font-data mt-4 text-xs text-sage/70">
-          Live rates and availability open on the booking page.
+          {BOOKING_PAUSED
+            ? "Rates and availability: message us on WhatsApp."
+            : "Live rates and availability open on the booking page."}
         </p>
       </div>
 

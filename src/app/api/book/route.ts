@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nights, today } from "@/lib/dates";
+import { BOOKING_PAUSED } from "@/lib/launch";
 import { sendConfirmationEmail, whatsappLink } from "@/lib/booking/notify";
 
 /**
@@ -67,6 +68,12 @@ function json(payload: unknown, status = 200) {
 }
 
 export async function POST(request: Request) {
+  // Paused for the portfolio launch (src/lib/launch.ts): answer before the body
+  // is read and before any database client exists. Nothing can be reserved.
+  if (BOOKING_PAUSED) {
+    return json({ ok: false, error: "Online booking is paused. Please WhatsApp us." }, 503);
+  }
+
   let raw: unknown;
   try {
     raw = await request.json();

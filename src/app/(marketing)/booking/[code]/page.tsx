@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { CalendarDays, Check, Phone } from "lucide-react";
 import { ElevationTag } from "@/components/elevation-tag";
 import { BookingLookup } from "@/components/booking/booking-lookup";
+import { BOOKING_PAUSED } from "@/lib/launch";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -25,6 +27,9 @@ export default async function BookingPage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  // Paused for the portfolio launch: guest booking management is not exposed.
+  if (BOOKING_PAUSED) notFound();
+
   const { code } = await params;
 
   return (

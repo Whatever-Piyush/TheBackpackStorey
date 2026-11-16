@@ -12,8 +12,9 @@ export const SITE = {
   tagline: "A hostel under the launch",
   description:
     "A small backpacker hostel and rooftop café in Bir, Himachal Pradesh — under the world's second-highest paragliding launch. A six-bed dorm, a handful of private rooms, bonfire nights and a valley view.",
-  // Update to the real domain at launch.
-  url: "https://backpackersstorey.com",
+  // Launch domain on Netlify (apex is primary; www redirects here). Drives
+  // metadataBase, the sitemap and robots.
+  url: "https://thebackpackerstory.in",
   // Phase 1 fallback: bookings stay on zotel until Phase 4.
   bookingUrl: "https://www.zotel.ai/hotels/backpackers-storey-bir",
 
@@ -38,6 +39,17 @@ export const SITE = {
   phones: ["+91 98166 10852", "+91 78272 22036"],
   whatsapp: "+91 98166 10852",
 } as const;
+
+/* ---------------------------------------------------------------- whatsapp */
+
+/** The enquiry every WhatsApp CTA opens with, unless a more specific one is given. */
+export const WHATSAPP_ENQUIRY = "Hi Backpackers Storey! I'd like to ask about a booking.";
+
+/** wa.me deep link to the property's WhatsApp number with a prefilled message. */
+export function whatsappEnquiryLink(message: string = WHATSAPP_ENQUIRY): string {
+  const digits = SITE.whatsapp.replace(/[^\d]/g, "");
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}
 
 export const NAV: { label: string; href: string }[] = [
   { label: "Stay", href: "/rooms" },

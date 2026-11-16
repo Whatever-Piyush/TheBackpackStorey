@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { BOOKING_PAUSED } from "@/lib/launch";
 import type { Room } from "@/lib/site";
 
 /**
@@ -60,7 +61,9 @@ export function RoomJourneyCard({
           >
             View room <ArrowUpRight size={16} aria-hidden />
           </Link>
-          <span className="font-data text-xs text-sage/70">Live rates on the booking page</span>
+          <span className="font-data text-xs text-sage/70">
+            {BOOKING_PAUSED ? "Ask for rates on WhatsApp" : "Live rates on the booking page"}
+          </span>
         </div>
       </div>
     </article>
