@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { requireUser, type Role } from "@/lib/auth";
+import { STAFF_PORTAL_ENABLED } from "@/lib/launch-server";
 import { PortalNav } from "@/components/portal/nav";
 import { SignOutButton } from "@/components/portal/sign-out-button";
 
@@ -22,6 +24,10 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // The portal exists only where STAFF_PORTAL_ENABLED is set (not on the public
+  // portfolio deployment) — see src/lib/launch.ts.
+  if (!STAFF_PORTAL_ENABLED) notFound();
+
   // Authoritative gate (proxy.ts only does the optimistic redirect).
   const session = await requireUser();
   const role = session.role;

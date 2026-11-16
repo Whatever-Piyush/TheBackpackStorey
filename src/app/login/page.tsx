@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { STAFF_PORTAL_ENABLED } from "@/lib/launch-server";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -9,6 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
+  // No staff sign-in on the public portfolio deployment — see src/lib/launch.ts.
+  if (!STAFF_PORTAL_ENABLED) notFound();
+
   return (
     <main className="flex flex-1 items-center justify-center px-5 py-16">
       <div className="w-full max-w-sm">

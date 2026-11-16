@@ -1,4 +1,5 @@
 import { drainOutbox } from "@/lib/channel/outbox";
+import { STAFF_PORTAL_ENABLED } from "@/lib/launch-server";
 
 /**
  * Drains the channel outbox. Invoked by a cron, and nudged after a booking.
@@ -18,6 +19,9 @@ function authorised(request: Request): boolean {
 }
 
 export async function POST(request: Request) {
+  // PMS machine endpoint: absent on the public portfolio deployment.
+  if (!STAFF_PORTAL_ENABLED) return new Response(null, { status: 404 });
+
   if (!authorised(request)) {
     return Response.json({ ok: false, error: "Unauthorised." }, { status: 401 });
   }

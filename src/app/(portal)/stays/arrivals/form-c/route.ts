@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { STAFF_PORTAL_ENABLED } from "@/lib/launch-server";
 import { createClient } from "@/lib/supabase/server";
 import { addDays } from "@/lib/dates";
 
@@ -36,6 +37,9 @@ function csvCell(value: unknown): string {
 }
 
 export async function GET(request: Request) {
+  // Route handlers bypass the (portal) layout gate, so repeat it here.
+  if (!STAFF_PORTAL_ENABLED) return new Response(null, { status: 404 });
+
   await requireRole(["owner", "manager"]);
 
   const url = new URL(request.url);

@@ -5,6 +5,7 @@ import {
   ingestReservation,
 } from "@/lib/channel/ingest";
 import { ChannelPayloadError } from "@/lib/channel/types";
+import { STAFF_PORTAL_ENABLED } from "@/lib/launch-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -39,6 +40,9 @@ function clientIp(request: Request): string {
 }
 
 export async function POST(request: Request) {
+  // ---- 0. PMS machine endpoint: absent on the public portfolio deployment ----
+  if (!STAFF_PORTAL_ENABLED) return new Response(null, { status: 404 });
+
   // ---- 1. is anyone expecting webhooks at all? ------------------------------
   //
   // In manual mode staff type OTA bookings in by hand and no Channel Manager is
