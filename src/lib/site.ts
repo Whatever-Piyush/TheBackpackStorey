@@ -404,22 +404,26 @@ export const ATTRACTIONS: Attraction[] = [
   {
     slug: "bir-landing",
     name: "Bir Landing Site",
-    distance: "2 km",
+    // Google Maps, from the property: 5.2 km on foot, 5.2-7.3 km by road (~22-24 min).
+    distance: "5 km",
     blurb:
       "The famous paragliding landing field, ringed by mountains — open skies and breathtaking sunset views.",
     icon: "Mountain",
     photo: "/photos/nearby/bir-landing.jpg",
-    maps: "https://www.google.com/maps/search/?api=1&query=Bir+Landing+Site",
+    // Pinned to Google's "Landing Site Bir" listing; a text search landed on a road.
+    maps: "https://www.google.com/maps/place/Landing+Site+Bir/@32.042493,76.708247,17z/data=!4m6!3m5!1s0x3904b90061debb77:0x10edb647890c66c4!8m2!3d32.042493!4d76.708247!16s%2Fg%2F11z2vsrvc2",
   },
   {
     slug: "billing-takeoff",
     name: "Bir Billing Paragliding",
-    distance: "2.1 km",
+    // Google Maps, from the property: 13.3 km up the Bir-Billing road (~36 min).
+    distance: "13 km",
     blurb:
       "The world-famous takeoff at Billing — tandem flights and schools soaring over scenic valleys.",
     icon: "Wind",
     photo: "/photos/nearby/billing-takeoff.jpg",
-    maps: "https://www.google.com/maps/search/?api=1&query=Billing+Paragliding+Takeoff",
+    // Pinned to Google's "Bir Billing Takeoff" listing; a text search listed operators.
+    maps: "https://www.google.com/maps/place/Bir+Billing+Takeoff/@32.0596905,76.744456,17z/data=!4m6!3m5!1s0x3904bf28912e2dff:0xd9dcc11b5c916d95!8m2!3d32.0596905!4d76.744456!16s%2Fg%2F12jmjzfg9",
   },
   {
     slug: "bungee",
