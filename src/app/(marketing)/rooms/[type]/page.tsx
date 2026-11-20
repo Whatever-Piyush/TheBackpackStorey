@@ -8,11 +8,13 @@ import { getRoom, ROOMS, SITE } from "@/lib/site";
 import { BookingButton } from "@/components/booking-button";
 import { ElevationTag } from "@/components/elevation-tag";
 import { RoomCard } from "@/components/room-card";
+import { GalleryLightbox } from "@/components/lightbox";
+import { RoomPhotoPlaceholder } from "@/components/room-photo-placeholder";
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
 import { addDays, today } from "@/lib/dates";
 import { getAvailability, roomTypeIdForCode } from "@/lib/booking/availability";
 
-// Pre-render every room type, then refresh the calendar periodically. The page
+// Pre-render every room, then refresh the calendar periodically. The page
 // itself never depends on availability loading — see below.
 export function generateStaticParams() {
   return ROOMS.map((room) => ({ type: room.slug }));
@@ -45,8 +47,10 @@ export default async function RoomDetailPage({ params }: Params) {
   // The room ALWAYS renders. Availability is additive: if the database is
   // unreachable, or Supabase isn't configured, the page still sells the room and
   // simply doesn't show a calendar. While booking is paused there is no lookup
-  // at all — the page is pure content plus the WhatsApp enquiry CTA.
-  const roomTypeId = BOOKING_PAUSED ? null : await roomTypeIdForCode(room.slug);
+  // at all — the page is pure content plus the WhatsApp enquiry CTA. A room
+  // with no booking type yet (the named private rooms) never looks one up.
+  const roomTypeId =
+    BOOKING_PAUSED || !room.bookingType ? null : await roomTypeIdForCode(room.bookingType);
   const availability = roomTypeId
     ? await getAvailability(roomTypeId, today(), addDays(today(), 365))
     : null;
@@ -63,14 +67,18 @@ export default async function RoomDetailPage({ params }: Params) {
 
       <div className="mt-8 grid gap-8 md:grid-cols-2 md:gap-12">
         <div className="relative aspect-[4/5] overflow-hidden rounded-card">
-          <Image
-            src={hero.src}
-            alt={hero.alt}
-            fill
-            priority
-            sizes="(min-width:768px) 48vw, 92vw"
-            className="object-cover"
-          />
+          {hero ? (
+            <Image
+              src={hero.src}
+              alt={hero.alt}
+              fill
+              priority
+              sizes="(min-width:768px) 48vw, 92vw"
+              className="object-cover"
+            />
+          ) : (
+            <RoomPhotoPlaceholder name={room.name} />
+          )}
         </div>
 
         <div className="self-center">
@@ -86,17 +94,19 @@ export default async function RoomDetailPage({ params }: Params) {
             ))}
           </div>
 
-          <ul className="mt-7 grid grid-cols-2 gap-x-5 gap-y-2.5">
-            {room.features.map((f) => (
-              <li key={f} className="flex items-center gap-2 text-sm text-paper">
-                <Check size={16} strokeWidth={2.4} className="shrink-0 text-amber" aria-hidden />
-                {f}
-              </li>
-            ))}
-          </ul>
+          {room.features.length > 0 ? (
+            <ul className="mt-7 grid grid-cols-2 gap-x-5 gap-y-2.5">
+              {room.features.map((f) => (
+                <li key={f} className="flex items-center gap-2 text-sm text-paper">
+                  <Check size={16} strokeWidth={2.4} className="shrink-0 text-amber" aria-hidden />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <BookingButton type={room.slug}>Book this {room.isDorm ? "bed" : "room"}</BookingButton>
+            <BookingButton room={room}>Book this {room.isDorm ? "bed" : "room"}</BookingButton>
             <a
               href={`tel:${SITE.phones[0].replace(/[^\d]/g, "")}`}
               className="font-data text-sm text-sage hover:text-paper"
@@ -125,20 +135,17 @@ export default async function RoomDetailPage({ params }: Params) {
         </section>
       )}
 
+      {/* The rest of the room's photos as uniform portrait tiles in display order
+          (room shots first, bathroom last), each opening full-size in the lightbox. */}
       {rest.length > 0 ? (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {rest.map((p) => (
-            <div key={p.src} className="relative aspect-[4/3] overflow-hidden rounded-xl">
-              <Image
-                src={p.src}
-                alt={p.alt}
-                fill
-                sizes="(min-width:640px) 30vw, 45vw"
-                className="object-cover"
-              />
-            </div>
-          ))}
-        </div>
+        <section className="mt-14">
+          <h2 className="font-display text-2xl font-extrabold tracking-tight text-paper">
+            A closer look
+          </h2>
+          <div className="mt-6">
+            <GalleryLightbox photos={rest} layout="grid" />
+          </div>
+        </section>
       ) : null}
 
       <div className="mt-20 border-t hairline pt-12">

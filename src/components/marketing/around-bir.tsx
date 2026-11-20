@@ -25,7 +25,7 @@ export function AroundBir() {
           </h2>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-sage">
             Hidden waterfalls, the paragliding capital of India and pure adrenaline —
-            all within a couple of kilometres of the door.
+            all within a few kilometres of the door.
           </p>
         </Reveal>
 

@@ -17,7 +17,17 @@ const ASPECTS = [
   "aspect-[5/6]",
 ];
 
-export function GalleryLightbox({ photos }: { photos: Photo[] }) {
+export function GalleryLightbox({
+  photos,
+  layout = "masonry",
+}: {
+  photos: Photo[];
+  /**
+   * "masonry" (default): editorial columns of cycled ratios, for the home gallery.
+   * "grid": uniform portrait tiles in reading order, for a room's own photos.
+   */
+  layout?: "masonry" | "grid";
+}) {
   const [index, setIndex] = useState<number | null>(null);
   const open = index !== null;
   const touchX = useRef<number | null>(null);
@@ -49,13 +59,21 @@ export function GalleryLightbox({ photos }: { photos: Photo[] }) {
     <>
       {/* masonry grid — revealed as one block; the modal below is a sibling so
           the reveal's transform never becomes the fixed modal's containing box. */}
-      <Reveal className="columns-2 gap-3 sm:columns-3 lg:columns-4">
+      <Reveal
+        className={
+          layout === "grid"
+            ? "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+            : "columns-2 gap-3 sm:columns-3 lg:columns-4"
+        }
+      >
         {photos.map((p, i) => (
           <button
             key={p.src}
             type="button"
             onClick={() => setIndex(i)}
-            className={`group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-xl border hairline ${ASPECTS[i % ASPECTS.length]}`}
+            className={`group relative block w-full overflow-hidden rounded-xl border hairline ${
+              layout === "grid" ? "aspect-[3/4]" : `mb-3 break-inside-avoid ${ASPECTS[i % ASPECTS.length]}`
+            }`}
             aria-label={`Open photo ${i + 1}`}
           >
             <Image

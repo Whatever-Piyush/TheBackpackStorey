@@ -14,7 +14,7 @@ Written 2026-11-16, before the first production deploy.
 | Node | 24 (pinned in `netlify.toml`; the build is verified locally on v24.x) |
 | Environment variables | **none** |
 | Domain | `thebackpackerstory.in` (primary) and `www.thebackpackerstory.in` (redirects to the primary). HTTPS via Netlify's automatic Let's Encrypt certificate. |
-| Public routes | `/`, `/rooms`, `/rooms/dorm`, `/rooms/deluxe`, `/rooms/premium`, `/rooms/family`, `/sitemap.xml`, `/robots.txt`, `/og.jpg` |
+| Public routes | `/`, `/rooms`, `/rooms/wildflower-den`, `/rooms/trailblazers-den`, `/rooms/valley-window`, `/rooms/natures-edge`, `/rooms/mountain-nook`, `/rooms/forest-haven`, `/sitemap.xml`, `/robots.txt`, `/og.jpg` |
 | Paused (booking) | `/book` → 307 to `/#visit` · `/booking/[code]` → 404 · `POST /api/book` → 503 · no availability calendar on room pages · every "Book" CTA is a WhatsApp enquiry |
 | Absent (staff) | `/login`, `/pos/*`, `/stays/*`, `/reception`, `/stays/arrivals/form-c`, `/api/channel/*` → 404 because `STAFF_PORTAL_ENABLED` is unset |
 
@@ -61,7 +61,7 @@ None are required for the portfolio deployment. For reference:
 ```bash
 B=https://thebackpackerstory.in      # or https://<site-name>.netlify.app before DNS
 
-for p in / /rooms /rooms/dorm /rooms/deluxe /rooms/premium /rooms/family /sitemap.xml /robots.txt /og.jpg; do
+for p in / /rooms /rooms/wildflower-den /rooms/trailblazers-den /rooms/valley-window /rooms/natures-edge /rooms/mountain-nook /rooms/forest-haven /sitemap.xml /robots.txt /og.jpg; do
   printf "%-18s %s\n" "$p" "$(curl -s -o /dev/null -w '%{http_code}' "$B$p")"      # all 200
 done
 curl -s -o /dev/null -w '%{http_code} -> %{redirect_url}\n' "$B/book"              # 307 -> /#visit
@@ -71,7 +71,7 @@ for p in /login /pos /stays /reception /api/channel/sync; do
   printf "%-18s %s\n" "$p" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B$p")" # 404 (GET for the pages also 404)
 done
 curl -sI "$B/" | grep -iE 'strict-transport|x-content-type|x-frame|referrer-policy|permissions-policy'
-curl -s "$B/sitemap.xml" | grep -o '<loc>[^<]*' | sed 's/<loc>//'                   # 6 URLs on the launch domain
+curl -s "$B/sitemap.xml" | grep -o '<loc>[^<]*' | sed 's/<loc>//'                   # 8 URLs on the launch domain
 ```
 
 Then in a browser at phone, tablet and desktop widths: the header/footer/hero/room-page CTAs open `wa.me/919816610852` with the prefilled text (room pages name the room); phone links dial; the map embed and "Get directions" work; the gallery lightbox, rooms fan, scroll background and moon scene run; no console errors; `view-source` shows `<link rel="canonical">`, `og:image` and `og:url` on the launch domain.

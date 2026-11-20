@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import type { Room } from "@/lib/site";
+import { RoomPhotoPlaceholder } from "@/components/room-photo-placeholder";
 
 export function RoomCard({ room }: { room: Room }) {
   const photo = room.photos[0];
@@ -12,15 +13,19 @@ export function RoomCard({ room }: { room: Room }) {
       className="group flex flex-col overflow-hidden rounded-card border hairline bg-forest transition-colors hover:border-amber/50"
     >
       <div className="relative aspect-[4/5] overflow-hidden">
-        <Image
-          src={photo.src}
-          alt={photo.alt}
-          fill
-          sizes="(min-width:1024px) 24vw, (min-width:640px) 45vw, 90vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-        />
+        {photo ? (
+          <Image
+            src={photo.src}
+            alt={photo.alt}
+            fill
+            sizes="(min-width:1024px) 24vw, (min-width:640px) 45vw, 90vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        ) : (
+          <RoomPhotoPlaceholder name={room.name} />
+        )}
         <span className="font-data absolute left-3 top-3 rounded-full bg-pine/70 px-2.5 py-1 text-[0.6rem] uppercase tracking-[0.16em] text-paper backdrop-blur">
-          {room.isDorm ? "Dorm" : "Private"} · ×{room.sleeps}
+          {room.label}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-5">

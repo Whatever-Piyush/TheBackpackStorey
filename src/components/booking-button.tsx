@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, MessageCircle } from "lucide-react";
 import { BOOKING_PAUSED } from "@/lib/launch";
-import { getRoom, whatsappEnquiryLink, type RoomType } from "@/lib/site";
+import { whatsappEnquiryLink, type Room } from "@/lib/site";
 
 type Variant = "primary" | "outline";
 
@@ -14,29 +14,29 @@ const BASE =
   "inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-medium transition-colors";
 
 /**
- * Every "Book" CTA routes to the on-site booking flow (/book). Optionally
- * preselects a room type. Centralised so the destination is a one-line change.
+ * Every "Book" CTA routes to the on-site booking flow (/book). Given a room, it
+ * preselects that room's booking type where one is known. Centralised so the
+ * destination is a one-line change.
  *
  * While BOOKING_PAUSED (the portfolio launch) the same button is a WhatsApp
  * enquiry instead: `children` is ignored in favour of a fixed enquiry label, and
- * the prefilled message names the room when `type` is given. Call sites keep
+ * the prefilled message names the room when one is given. Call sites keep
  * their original labels, so un-pausing restores them untouched.
  */
 export function BookingButton({
   variant = "primary",
   className = "",
   children = "Book a bed",
-  type,
+  room,
 }: {
   variant?: Variant;
   className?: string;
   children?: React.ReactNode;
-  type?: RoomType;
+  room?: Room;
 }) {
   if (BOOKING_PAUSED) {
-    const room = type ? getRoom(type) : undefined;
     const message = room
-      ? `Hi Backpackers Storey! I'd like to ask about the ${room.name}.`
+      ? `Hi Backpackers Storey! I'd like to ask about ${room.name} (${room.label}).`
       : undefined;
     return (
       <a
@@ -51,6 +51,7 @@ export function BookingButton({
     );
   }
 
+  const type = room?.bookingType;
   return (
     <Link
       href={type ? `/book?type=${type}` : "/book"}

@@ -29,14 +29,14 @@ export function Intro() {
               monasteries down the road, and the launch at Billing a short drive up.
             </p>
             <p>
-              The place is intentionally small: one six-bed dorm and a few private
-              rooms, all wrapped around a rooftop café. You will know the other
+              The place is intentionally small: two dorms and four private rooms,
+              all wrapped around a rooftop café. You will know the other
               guests by their first names before you leave.
             </p>
           </Reveal>
           <Reveal delay={240}>
             <ul className="mt-8 flex flex-wrap gap-2.5">
-              {["6-bed dorm", "A few private rooms", "Rooftop café"].map((t) => (
+              {["Two dorms", "Four private rooms", "Rooftop café"].map((t) => (
                 <li key={t} className="capsule rounded-full border hairline px-4 py-1.5 text-sm text-paper">
                   {t}
                 </li>

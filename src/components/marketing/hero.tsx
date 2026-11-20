@@ -68,8 +68,8 @@ export function Hero() {
         </h1>
         <Reveal delay={320}>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-sage">
-            A small backpacker hostel and rooftop café in Bir — a six-bed dorm, a
-            handful of private rooms, and a valley view under the world&apos;s
+            A small backpacker hostel and rooftop café in Bir — two dorms, four
+            private rooms, and a valley view under the world&apos;s
             second-highest paragliding launch.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

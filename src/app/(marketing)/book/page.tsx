@@ -5,7 +5,7 @@ import { BookingWidget, type BookableType } from "@/components/booking/booking-w
 import { getAvailability, roomTypeIdForCode } from "@/lib/booking/availability";
 import { addDays, today } from "@/lib/dates";
 import { BOOKING_PAUSED } from "@/lib/launch";
-import { ROOMS, SITE } from "@/lib/site";
+import { BOOKABLE_ROOM_TYPES, SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Book your stay",
@@ -41,13 +41,13 @@ export default async function BookPage({
 
   const types = (
     await Promise.all(
-      ROOMS.map(async (room): Promise<BookableType | null> => {
-        const roomTypeId = await roomTypeIdForCode(room.slug);
+      BOOKABLE_ROOM_TYPES.map(async (room): Promise<BookableType | null> => {
+        const roomTypeId = await roomTypeIdForCode(room.code);
         if (!roomTypeId) return null;
         const availability = await getAvailability(roomTypeId, from, to);
         if (!availability) return null;
         return {
-          code: room.slug,
+          code: room.code,
           name: room.name,
           isDorm: room.isDorm,
           // A dorm sells beds; a private room sells itself. The allotment caps
